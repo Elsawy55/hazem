@@ -4,12 +4,12 @@ import { getFirestore } from "firebase/firestore";
 // نستخدم متغيرات البيئة الخاصة بـ Vite
 // Vercel سيقوم بحقن هذه القيم أثناء البناء
 const firebaseConfig = {
-  apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
-  authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN,
-  projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID,
-  storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET,
-  messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID,
-  appId: import.meta.env.VITE_FIREBASE_APP_ID
+  apiKey: import.meta.env.AIzaSyCtZ2giayw8VtCqBgjwug4yBJVqxauU_tc,
+  authDomain: import.meta.env.hafezapp-39395.firebaseapp.com,
+  projectId: import.meta.env.hafezapp-39395,
+  storageBucket: import.meta.env.hafezapp-39395.firebasestorage.app,
+  messagingSenderId: import.meta.env.41845779714,
+  appId: import.meta.env.1:41845779714:web:8c621092ed05aec571a61b
 };
 
 // تهيئة التطبيق
