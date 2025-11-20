@@ -4,7 +4,7 @@ import { Session, SessionStatus, User, UserRole, Student, UserStatus } from './t
 // FIXED SHEIKH CREDENTIALS
 export const MOCK_SHEIKH: User = {
   id: 'sheikh-1',
-  name: 'Sheikh Abdullah',
+  name: 'Hazem Emam',
   role: UserRole.SHEIKH,
   status: UserStatus.ACTIVE,
   avatarUrl: 'https://ui-avatars.com/api/?name=Sheikh+Abdullah&background=0D9488&color=fff',
