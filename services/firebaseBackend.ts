@@ -1,4 +1,5 @@
-import { db } from '../firebaseConfig';
+// services/firebaseBackend.ts
+import { getDb } from '../firebaseConfig';
 import { collection, getDocs, query, where, doc, setDoc, updateDoc, getDoc } from 'firebase/firestore';
 import { User, UserRole, UserStatus, Student, Session, SessionStatus, Schedule } from '../types';
 import { MOCK_SHEIKH } from '../constants';
@@ -14,12 +15,12 @@ const SESSIONS_COLLECTION = 'sessions';
 export const api = {
   auth: {
     login: async (phone: string, pass: string): Promise<User> => {
+      const db = getDb();
       // البحث عن المستخدم برقم الهاتف
       const q = query(collection(db, USERS_COLLECTION), where("phoneNumber", "==", phone));
       const querySnapshot = await getDocs(q);
 
       if (querySnapshot.empty) {
-        // إذا لم نجد مستخدمين، وكان الرقم هو رقم الشيخ، نقوم بإنشائه تلقائياً (لأول مرة فقط)
         if (phone === MOCK_SHEIKH.phoneNumber && pass === MOCK_SHEIKH.password) {
             await setDoc(doc(db, USERS_COLLECTION, MOCK_SHEIKH.id), MOCK_SHEIKH);
             return MOCK_SHEIKH;
@@ -29,7 +30,6 @@ export const api = {
 
       const userData = querySnapshot.docs[0].data() as User;
 
-      // التحقق من كلمة المرور (بشكل بسيط كما طلبت)
       if (userData.password !== pass) {
         throw new Error('كلمة المرور غير صحيحة');
       }
@@ -48,7 +48,6 @@ export const api = {
     },
     
     verifyOtp: async (phone: string, code: string): Promise<void> => {
-      // التثبيت كما طلبت
       if (code !== '123456') {
         throw new Error('كود التحقق غير صحيح');
       }
@@ -56,6 +55,7 @@ export const api = {
     },
     
     registerStudent: async (data: any): Promise<Student> => {
+      const db = getDb();
       // التحقق مما إذا كان الرقم موجوداً
       const q = query(collection(db, USERS_COLLECTION), where("phoneNumber", "==", data.phone));
       const querySnapshot = await getDocs(q);
@@ -78,7 +78,6 @@ export const api = {
         totalFines: 0
       };
       
-      // حفظ الطالب في Firestore
       await setDoc(doc(db, USERS_COLLECTION, newStudent.id), newStudent);
       
       return newStudent;
@@ -87,16 +86,18 @@ export const api = {
   
   sheikh: {
     getStudents: async (): Promise<Student[]> => {
+      const db = getDb();
       const q = query(collection(db, USERS_COLLECTION), where("role", "==", UserRole.STUDENT));
       const querySnapshot = await getDocs(q);
       const students: Student[] = [];
-      querySnapshot.forEach((doc) => {
-        students.push(doc.data() as Student);
+      querySnapshot.forEach((d) => {
+        students.push(d.data() as Student);
       });
       return students;
     },
     
     approveStudent: async (id: string, schedule: Schedule): Promise<void> => {
+      const db = getDb();
       const studentRef = doc(db, USERS_COLLECTION, id);
       await updateDoc(studentRef, {
         status: UserStatus.ACTIVE,
@@ -105,6 +106,7 @@ export const api = {
     },
 
     penalizeStudent: async (id: string, amount: number): Promise<void> => {
+       const db = getDb();
        const studentRef = doc(db, USERS_COLLECTION, id);
        const snap = await getDoc(studentRef);
        if (snap.exists()) {
@@ -118,6 +120,7 @@ export const api = {
   
   student: {
     checkIn: async (studentId: string): Promise<Session> => {
+      const db = getDb();
       const studentRef = doc(db, USERS_COLLECTION, studentId);
       const studentSnap = await getDoc(studentRef);
       
@@ -134,7 +137,6 @@ export const api = {
         status: SessionStatus.READY
       };
 
-      // حفظ الجلسة في Firestore
       await setDoc(doc(db, SESSIONS_COLLECTION, sessionId), newSession);
       
       return newSession;
