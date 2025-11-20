@@ -10,12 +10,12 @@ const getEnv = (key: keyof ImportMetaEnv) => {
 };
 
 const firebaseConfig = {
-  apiKey: import.meta.env ? import.meta.env.VITE_FIREBASE_API_KEY : undefined,
-  authDomain: import.meta.env ? import.meta.env.VITE_FIREBASE_AUTH_DOMAIN : undefined,
-  projectId: import.meta.env ? import.meta.env.VITE_FIREBASE_PROJECT_ID : undefined,
-  storageBucket: import.meta.env ? import.meta.env.VITE_FIREBASE_STORAGE_BUCKET : undefined,
-  messagingSenderId: import.meta.env ? import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID : undefined,
-  appId: import.meta.env ? import.meta.env.VITE_FIREBASE_APP_ID : undefined
+  apiKey: import.meta.env ? import.meta.env.AIzaSyCtZ2giayw8VtCqBgjwug4yBJVqxauU_tc : undefined,
+  authDomain: import.meta.env ? import.meta.envhafezapp-39395.firebaseapp.com : undefined,
+  projectId: import.meta.env ? import.meta.env.hafezapp-39395 : undefined,
+  storageBucket: import.meta.env ? import.meta.env.hafezapp-39395.firebasestorage.app : undefined,
+  messagingSenderId: import.meta.env ? import.meta.env.41845779714 : undefined,
+  appId: import.meta.env ? import.meta.env.1:41845779714:web:8c621092ed05aec571a61b : undefined
 };
 
 // تهيئة التطبيق
