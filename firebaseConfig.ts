@@ -1,31 +1,18 @@
+// firebaseConfig.ts
 import { initializeApp } from "firebase/app";
-import { getFirestore } from "firebase/firestore";
-
-type EnvKeys =
-  | "VITE_FIREBASE_API_KEY"
-  | "VITE_FIREBASE_AUTH_DOMAIN"
-  | "VITE_FIREBASE_PROJECT_ID"
-  | "VITE_FIREBASE_STORAGE_BUCKET"
-  | "VITE_FIREBASE_MESSAGING_SENDER_ID"
-  | "VITE_FIREBASE_APP_ID";
-
-const getEnv = (k: EnvKeys) => {
-  // import.meta.env is injected by Vite at build time
-  // @ts-ignore
-  return import.meta.env?.[k] ?? undefined;
-};
+import { getFirestore, type Firestore } from "firebase/firestore";
 
 const firebaseConfig = {
-  apiKey: getEnv("VITE_FIREBASE_API_KEY"),
-  authDomain: getEnv("VITE_FIREBASE_AUTH_DOMAIN"),
-  projectId: getEnv("VITE_FIREBASE_PROJECT_ID"),
-  storageBucket: getEnv("VITE_FIREBASE_STORAGE_BUCKET"),
-  messagingSenderId: getEnv("VITE_FIREBASE_MESSAGING_SENDER_ID"),
-  appId: getEnv("VITE_FIREBASE_APP_ID"),
+  apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
+  authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN,
+  projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID,
+  storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET,
+  messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID,
+  appId: import.meta.env.VITE_FIREBASE_APP_ID,
 };
 
-let app;
-let dbInstance;
+let app: ReturnType<typeof initializeApp> | undefined;
+let dbInstance: Firestore | undefined;
 
 try {
   if (firebaseConfig.apiKey) {
@@ -38,4 +25,10 @@ try {
   console.error("Error initializing Firebase:", err);
 }
 
-export const db = dbInstance;
+// بدل ما نصدر db مباشرة، نصدر دالة تضمن وجوده
+export function getDb(): Firestore {
+  if (!dbInstance) {
+    throw new Error("Firestore is not initialized. Make sure environment variables are set.");
+  }
+  return dbInstance;
+}
