@@ -1,24 +1,29 @@
-
 import { initializeApp } from "firebase/app";
 import { getFirestore } from "firebase/firestore";
 
-// Safety check: ensure import.meta.env exists before accessing properties
-// This prevents the "Cannot read properties of undefined" error
-const getEnv = (key: keyof ImportMetaEnv) => {
+type EnvKeys =
+  | "VITE_FIREBASE_API_KEY"
+  | "VITE_FIREBASE_AUTH_DOMAIN"
+  | "VITE_FIREBASE_PROJECT_ID"
+  | "VITE_FIREBASE_STORAGE_BUCKET"
+  | "VITE_FIREBASE_MESSAGING_SENDER_ID"
+  | "VITE_FIREBASE_APP_ID";
+
+const getEnv = (k: EnvKeys) => {
+  // import.meta.env is injected by Vite at build time
   // @ts-ignore
-  return (import.meta.env && import.meta.env[key]) ? import.meta.env[key] : undefined;
+  return import.meta.env?.[k] ?? undefined;
 };
 
 const firebaseConfig = {
-  apiKey: import.meta.env ? import.meta.env.AIzaSyCtZ2giayw8VtCqBgjwug4yBJVqxauU_tc : undefined,
-  authDomain: import.meta.env ? import.meta.envhafezapp-39395.firebaseapp.com : undefined,
-  projectId: import.meta.env ? import.meta.env.hafezapp-39395 : undefined,
-  storageBucket: import.meta.env ? import.meta.env.hafezapp-39395.firebasestorage.app : undefined,
-  messagingSenderId: import.meta.env ? import.meta.env.41845779714 : undefined,
-  appId: import.meta.env ? import.meta.env.1:41845779714:web:8c621092ed05aec571a61b : undefined
+  apiKey: getEnv("VITE_FIREBASE_API_KEY"),
+  authDomain: getEnv("VITE_FIREBASE_AUTH_DOMAIN"),
+  projectId: getEnv("VITE_FIREBASE_PROJECT_ID"),
+  storageBucket: getEnv("VITE_FIREBASE_STORAGE_BUCKET"),
+  messagingSenderId: getEnv("VITE_FIREBASE_MESSAGING_SENDER_ID"),
+  appId: getEnv("VITE_FIREBASE_APP_ID"),
 };
 
-// تهيئة التطبيق
 let app;
 let dbInstance;
 
@@ -27,10 +32,10 @@ try {
     app = initializeApp(firebaseConfig);
     dbInstance = getFirestore(app);
   } else {
-    console.warn("Firebase keys are missing. The app will run without a DB connection.");
+    console.warn("Firebase keys are missing. Running without DB.");
   }
-} catch (error) {
-  console.error("Error initializing Firebase:", error);
+} catch (err) {
+  console.error("Error initializing Firebase:", err);
 }
 
 export const db = dbInstance;
