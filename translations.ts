@@ -78,7 +78,7 @@ export const translations = {
     enterOtp: "Enter 6-digit Code",
     otpSent: "Code sent to",
     pendingApprovalTitle: "Account Pending Approval",
-    pendingApprovalDesc: "JazakAllah Khair! Your account has been created successfully. Please wait for Sheikh Abdullah to review your request and assign your schedule.",
+    pendingApprovalDesc: "JazakAllah Khair! Your account has been created successfully. Please wait for Sheikh Hazem Emam to review your request and assign your schedule.",
     refreshStatus: "Check Status",
     newStudents: "New Students",
     approve: "Approve",
@@ -92,7 +92,7 @@ export const translations = {
     registerNow: "Register Now",
     alreadyHaveAccount: "Already have an account?",
     loginNow: "Login Now",
-    
+
     // New Translations
     dashboard: "Dashboard",
     myStudents: "My Students",

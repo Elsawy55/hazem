@@ -7,7 +7,7 @@ export const MOCK_SHEIKH: User = {
   name: 'Hazem Emam',
   role: UserRole.SHEIKH,
   status: UserStatus.ACTIVE,
-  avatarUrl: 'https://ui-avatars.com/api/?name=Sheikh+Abdullah&background=0D9488&color=fff',
+  avatarUrl: 'https://ui-avatars.com/api/?name=Hazem+Emam&background=0D9488&color=fff',
   phoneNumber: '01040146888',
   password: '55667788' // Fixed password
 };
