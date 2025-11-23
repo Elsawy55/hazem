@@ -189,7 +189,6 @@ export const api = {
       const sessionSnap = await getDoc(sessionRef);
       if (sessionSnap.exists()) {
         const sessionData = sessionSnap.data() as Session;
-        // Re-use penalize logic
         const studentRef = doc(db, USERS_COLLECTION, sessionData.studentId);
         const studentSnap = await getDoc(studentRef);
         if (studentSnap.exists()) {
@@ -199,6 +198,11 @@ export const api = {
           });
         }
       }
+    },
+
+    updateStudentMemorization: async (studentId: string, data: Partial<Student>): Promise<void> => {
+      const studentRef = doc(db, USERS_COLLECTION, studentId);
+      await updateDoc(studentRef, data);
     }
   },
 
@@ -259,6 +263,21 @@ export const api = {
         totalPagesMemorized: initialPages,
         memorizationPercentage: Math.min(Math.round(memorizationPercentage * 100) / 100, 100)
       });
+    },
+
+    getStudentHistory: async (studentId: string): Promise<Session[]> => {
+      const q = query(
+        collection(db, SESSIONS_COLLECTION),
+        where("studentId", "==", studentId),
+        where("status", "==", SessionStatus.COMPLETED)
+      );
+      const querySnapshot = await getDocs(q);
+      const sessions: Session[] = [];
+      querySnapshot.forEach((doc) => {
+        sessions.push(doc.data() as Session);
+      });
+      // Sort by newest first (assuming ID is timestamp-based)
+      return sessions.sort((a, b) => b.id.localeCompare(a.id));
     }
   }
 };
