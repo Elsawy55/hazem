@@ -90,29 +90,41 @@ export default function MemorizationSetupModal({ isOpen, onClose, onSave }: Memo
     };
 
     const handleFinish = async () => {
-        await setupMemorization({
-            startPage: calculatedStartPage,
-            dailyWerdPages: dailyWerd,
-            initialMemorizedType: hasPrevious ? previousType : null,
-            initialMemorizedValue: hasPrevious ? previousValue : 0
-        });
-        onSave();
+        try {
+            await setupMemorization({
+                startPage: calculatedStartPage,
+                dailyWerdPages: dailyWerd,
+                initialMemorizedType: hasPrevious ? previousType : null,
+                initialMemorizedValue: hasPrevious ? previousValue : 0
+            });
+            onSave();
+        } catch (error) {
+            console.error("Failed to save memorization setup:", error);
+            // Optionally show error to user
+            onSave(); // Close anyway to prevent getting stuck? Or keep open?
+            // If we close, we might leave partial state. But better than crash.
+        }
     };
 
     if (!isOpen) return null;
 
     const isRtl = language === 'ar';
     const chevronNext = isRtl ? <ChevronLeft size={20} /> : <ChevronRight size={20} />;
-    // const chevronBack = isRtl ? <ChevronRight size={20} /> : <ChevronLeft size={20} />; // Unused
 
     return (
-        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center z-50 p-4 animate-in fade-in duration-200" dir={isRtl ? 'rtl' : 'ltr'}>
+        <div
+            className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center z-50 p-4 animate-in fade-in duration-200"
+            dir={isRtl ? 'rtl' : 'ltr'}
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="modal-title"
+        >
             <div className="bg-white rounded-3xl shadow-2xl max-w-lg w-full overflow-hidden flex flex-col max-h-[90vh]">
 
                 {/* Header / Progress */}
                 <div className="bg-slate-50 p-6 border-b border-slate-100">
                     <div className="flex justify-between items-center mb-4">
-                        <h2 className="text-xl font-bold text-slate-800">
+                        <h2 id="modal-title" className="text-xl font-bold text-slate-800">
                             {step === 'welcome' && t('welcome')}
                             {step === 'start' && t('startPoint')}
                             {step === 'werd' && t('dailyWerd')}
