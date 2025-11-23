@@ -14,7 +14,7 @@ export const PendingApprovalView: React.FC = () => {
         <div className="w-20 h-20 bg-amber-50 text-amber-500 rounded-full flex items-center justify-center mx-auto mb-6">
           <Clock size={40} />
         </div>
-        
+
         <h2 className="text-2xl font-bold text-slate-800 mb-2">{t('pendingApprovalTitle')}</h2>
         <p className="text-slate-500 mb-8 leading-relaxed">
           {t('pendingApprovalDesc')}
@@ -27,7 +27,22 @@ export const PendingApprovalView: React.FC = () => {
         </div>
 
         <div className="space-y-3">
-          <Button fullWidth onClick={checkAuth} icon={<RefreshCcw size={18} />}>
+          <Button fullWidth onClick={async () => {
+            try {
+              await checkAuth();
+              // Force a small delay to ensure state updates
+              setTimeout(() => {
+                const currentUser = JSON.parse(localStorage.getItem('hafiz_user_session') || '{}');
+                if (currentUser.status === 'ACTIVE') {
+                  window.location.reload(); // Force reload to show dashboard
+                } else {
+                  alert(t('statusRefreshed') || 'Status refreshed - still pending approval');
+                }
+              }, 500);
+            } catch (e) {
+              alert('Error refreshing status');
+            }
+          }} icon={<RefreshCcw size={18} />}>
             {t('refreshStatus')}
           </Button>
           <Button fullWidth variant="ghost" onClick={logout} icon={<LogOut size={18} />}>

@@ -4,8 +4,8 @@ import { AuthState, User, UserRole, UserStatus, QueueState, Session, SessionStat
 // -------------------------------------------------------------
 // IMPORTANT: Switching to Firebase Backend for Production
 // -------------------------------------------------------------
-import { api } from '../services/firebaseBackend'; 
-// import { api } from '../services/localBackend'; // Commented out for production
+import { api } from '../services/firebaseBackend';
+// import { api } from '../services/localBackend'; // Switched to local for development
 
 import { translations, TranslationKey } from '../translations';
 
@@ -15,24 +15,12 @@ interface AppContextType {
   language: Language;
   toggleLanguage: () => void;
   t: (key: TranslationKey, params?: Record<string, string | number>) => string;
-  
+
   // Auth Actions
   login: (phone: string, pass: string) => Promise<void>;
   logout: () => void;
   register: (data: any) => Promise<void>;
   checkAuth: () => Promise<void>;
-  requestOtp: (phone: string) => Promise<void>;
-  verifyOtp: (phone: string, code: string) => Promise<void>;
-
-  // Queue Actions
-  checkIn: (studentId: string) => Promise<void>;
-  startSession: () => void;
-  completeSession: (sessionId: string, notes?: string) => void;
-  skipSession: (sessionId: string) => void;
-  markAbsent: (sessionId: string) => void;
-  
-  // Getters
-  getActiveSession: () => Session | undefined;
   getNextSession: () => Session | undefined;
   getCurrentStudent: () => Student | undefined;
 
@@ -40,6 +28,21 @@ interface AppContextType {
   getAllStudents: () => Promise<Student[]>;
   getPendingStudents: () => Promise<Student[]>;
   approveStudent: (id: string, schedule: Schedule) => Promise<void>;
+  updateSchedule: (studentId: string, schedule: Schedule) => Promise<void>;
+  deleteStudent: (studentId: string) => Promise<void>;
+  updateStudentMemorization: (studentId: string, data: Partial<Student>) => Promise<void>;
+  setupMemorization: (data: any) => Promise<void>;
+
+  // Queue Actions
+  checkIn: (studentId: string) => Promise<void>;
+  startSession: () => void;
+  completeSession: (sessionId: string, notes?: string) => Promise<Student | null>;
+  skipSession: (sessionId: string) => void;
+  markAbsent: (sessionId: string) => void;
+  getActiveSession: () => Session | undefined;
+  requestOtp: (phone: string) => Promise<void>;
+  verifyOtp: (phone: string, code: string) => Promise<void>;
+  getStudentHistory: (studentId: string) => Promise<Session[]>;
 }
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
@@ -56,7 +59,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
 
   const [queue, setQueue] = useState<QueueState>({
     currentSessionId: null,
-    sessions: [], 
+    sessions: [],
   });
 
   // Initialize Auth on Load
@@ -71,8 +74,96 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     } else {
       setAuth(prev => ({ ...prev, isLoading: false }));
     }
-    
-    setQueue({ currentSessionId: null, sessions: [] });
+
+    // Load existing sessions from localStorage
+    const savedSessions = localStorage.getItem('hafiz_db_sessions');
+    if (savedSessions) {
+      try {
+        const sessions = JSON.parse(savedSessions);
+        setQueue({ currentSessionId: null, sessions });
+      } catch (e) {
+        console.error('Failed to load sessions:', e);
+        setQueue({ currentSessionId: null, sessions: [] });
+      }
+    } else {
+      setQueue({ currentSessionId: null, sessions: [] });
+    }
+
+    // Listen for storage changes to sync across tabs (Local Simulation of Real-time)
+    const handleStorageChange = (e: StorageEvent) => {
+      if (e.key === 'hafiz_db_sessions') {
+        const newSessions = e.newValue ? JSON.parse(e.newValue) : [];
+        setQueue(prev => ({ ...prev, sessions: newSessions }));
+      } else if (e.key === 'hafiz_db_users') {
+        // Sync user data if the current user is updated
+        const newUsers = e.newValue ? JSON.parse(e.newValue) : [];
+        const currentUser = localStorage.getItem('hafiz_user_session');
+
+        if (currentUser) {
+          const parsedUser = JSON.parse(currentUser);
+          const updatedUser = newUsers.find((u: any) => u.id === parsedUser.id);
+
+          if (updatedUser) {
+            // Only update if there are actual changes to avoid loops
+            if (JSON.stringify(updatedUser) !== JSON.stringify(parsedUser)) {
+              console.log('Syncing updated user data from storage event');
+              localStorage.setItem('hafiz_user_session', JSON.stringify(updatedUser));
+              setAuth(prev => ({ ...prev, user: updatedUser }));
+            }
+          }
+        }
+      }
+    };
+
+    window.addEventListener('storage', handleStorageChange);
+
+    // Also poll for session and user changes every 2 seconds (for same-tab updates)
+    const pollInterval = setInterval(() => {
+      // 1. Poll Sessions
+      const currentSessions = localStorage.getItem('hafiz_db_sessions');
+      if (currentSessions) {
+        try {
+          const sessions = JSON.parse(currentSessions);
+          setQueue(prev => {
+            // Only update if sessions actually changed
+            if (JSON.stringify(prev.sessions) !== JSON.stringify(sessions)) {
+              return { ...prev, sessions };
+            }
+            return prev;
+          });
+        } catch (e) {
+          console.error('Failed to poll sessions:', e);
+        }
+      }
+
+      // 2. Poll User Data (for Schedule Updates)
+      const currentUserStr = localStorage.getItem('hafiz_user_session');
+      if (currentUserStr) {
+        const currentUser = JSON.parse(currentUserStr);
+        if (currentUser.role === 'student') { // Only poll for students
+          const allUsersStr = localStorage.getItem('hafiz_db_users');
+          if (allUsersStr) {
+            try {
+              const allUsers = JSON.parse(allUsersStr);
+              const freshUser = allUsers.find((u: any) => u.id === currentUser.id);
+
+              if (freshUser && JSON.stringify(freshUser) !== JSON.stringify(currentUser)) {
+                console.log('Polling detected user update (schedule change?)');
+                localStorage.setItem('hafiz_user_session', JSON.stringify(freshUser));
+                setAuth(prev => ({ ...prev, user: freshUser }));
+              }
+            } catch (e) {
+              console.error('Failed to poll users:', e);
+            }
+          }
+        }
+      }
+    }, 2000);
+
+    return () => {
+      window.removeEventListener('storage', handleStorageChange);
+      clearInterval(pollInterval);
+    };
   }, []);
 
   const toggleLanguage = useCallback(() => {
@@ -129,21 +220,28 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
   }, []);
 
   const checkAuth = async () => {
+    console.log("checkAuth started");
     const savedUser = localStorage.getItem('hafiz_user_session');
     if (savedUser) {
-       const user = JSON.parse(savedUser);
-       if (user.role === UserRole.STUDENT) {
-          try {
-            const allStudents = await api.sheikh.getStudents();
-            const freshUser = allStudents.find(u => u.id === user.id);
-            if (freshUser) {
-               localStorage.setItem('hafiz_user_session', JSON.stringify(freshUser));
-               setAuth(prev => ({ ...prev, user: freshUser }));
-            }
-          } catch (e) {
-            console.error("Failed to refresh auth", e);
+      const user = JSON.parse(savedUser);
+      console.log("Current user in storage:", user);
+      if (user.role === UserRole.STUDENT) {
+        try {
+          const allStudents = await api.sheikh.getStudents();
+          console.log("All students fetched:", allStudents);
+          const freshUser = allStudents.find(u => u.id === user.id);
+          console.log("Fresh user data:", freshUser);
+          if (freshUser) {
+            localStorage.setItem('hafiz_user_session', JSON.stringify(freshUser));
+            setAuth(prev => ({ ...prev, user: freshUser }));
+            console.log("Auth state updated");
           }
-       }
+        } catch (e) {
+          console.error("Failed to refresh auth", e);
+        }
+      }
+    } else {
+      console.log("No saved user found");
     }
   };
 
@@ -151,6 +249,16 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
 
   const checkIn = useCallback(async (studentId: string) => {
     try {
+      // First, refresh the student data to get the latest schedule
+      const allStudents = await api.sheikh.getStudents();
+      const freshStudent = allStudents.find(s => s.id === studentId);
+
+      if (freshStudent && auth.user?.id === studentId) {
+        // Update the auth state with fresh data
+        localStorage.setItem('hafiz_user_session', JSON.stringify(freshStudent));
+        setAuth(prev => ({ ...prev, user: freshStudent }));
+      }
+
       const session = await api.student.checkIn(studentId);
       setQueue(prev => ({
         ...prev,
@@ -160,55 +268,56 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       console.error("Check-in failed:", err);
       alert(err.message);
     }
-  }, []);
+  }, [auth.user]);
 
-  const startSession = useCallback(() => {
-    setQueue(prev => {
-      const nextReady = prev.sessions.find(s => s.status === SessionStatus.READY);
-      if (!nextReady) return prev;
-      return {
+  const startSession = useCallback(async () => {
+    const nextSession = queue.sessions.find(s => s.status === SessionStatus.READY) ||
+      queue.sessions.find(s => s.status === SessionStatus.WAITING);
+
+    if (nextSession) {
+      await api.sheikh.startSession(nextSession.id);
+      setQueue(prev => ({
         ...prev,
-        currentSessionId: nextReady.id,
+        currentSessionId: nextSession.id,
         sessions: prev.sessions.map(s => {
-          if (s.id === nextReady.id) return { ...s, status: SessionStatus.IN_PROGRESS };
+          if (s.id === nextSession.id) return { ...s, status: SessionStatus.IN_PROGRESS };
           return s;
         })
-      };
-    });
-  }, []);
+      }));
+    }
+  }, [queue.sessions]);
 
-  const completeSession = useCallback((sessionId: string, notes?: string) => {
+  const completeSession = async (sessionId: string, notes?: string) => {
+    const updatedStudent = await api.sheikh.completeSession(sessionId, notes);
     setQueue(prev => ({
       ...prev,
       currentSessionId: null,
-      sessions: prev.sessions.map(s => 
+      sessions: prev.sessions.map(s =>
         s.id === sessionId ? { ...s, status: SessionStatus.COMPLETED, notes } : s
       )
     }));
-  }, []);
+    return updatedStudent;
+  };
 
-  const skipSession = useCallback((sessionId: string) => {
-     setQueue(prev => ({
+  const skipSession = useCallback(async (sessionId: string) => {
+    await api.sheikh.skipSession(sessionId);
+    setQueue(prev => ({
       ...prev,
-      sessions: prev.sessions.map(s => 
+      sessions: prev.sessions.map(s =>
         s.id === sessionId ? { ...s, status: SessionStatus.WAITING } : s
       )
     }));
   }, []);
 
-  const markAbsent = useCallback((sessionId: string) => {
-    const session = queue.sessions.find(s => s.id === sessionId);
-    if (session) {
-       api.sheikh.penalizeStudent(session.studentId, 30).catch(console.error);
-    }
-    
+  const markAbsent = useCallback(async (sessionId: string) => {
+    await api.sheikh.markAbsent(sessionId);
     setQueue(prev => ({
       ...prev,
-      sessions: prev.sessions.map(s => 
+      sessions: prev.sessions.map(s =>
         s.id === sessionId ? { ...s, status: SessionStatus.ABSENT } : s
       )
     }));
-  }, [queue.sessions]);
+  }, []);
 
   const getActiveSession = useCallback(() => {
     return queue.sessions.find(s => s.status === SessionStatus.IN_PROGRESS);
@@ -226,7 +335,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
   }, [auth.user]);
 
   // --- SHEIKH ACTIONS ---
-  
+
   const getAllStudents = async () => {
     try {
       return await api.sheikh.getStudents();
@@ -249,13 +358,48 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     await api.sheikh.approveStudent(id, schedule);
   };
 
+  const updateSchedule = async (studentId: string, schedule: Schedule) => {
+    await api.sheikh.updateSchedule(studentId, schedule);
+  };
+
+  const deleteStudent = async (studentId: string) => {
+    await api.sheikh.deleteStudent(studentId);
+  };
+
+  const updateStudentMemorization = async (studentId: string, data: Partial<Student>) => {
+    await api.sheikh.updateStudentMemorization(studentId, data);
+  };
+
+  const setupMemorization = async (data: any) => {
+    if (auth.user?.id) {
+      await api.student.setupMemorization(auth.user.id, data);
+
+      // Fetch the updated user from the backend to ensure we have the calculated fields (like percentage)
+      const allStudents = await api.sheikh.getStudents();
+      const updatedUser = allStudents.find(u => u.id === auth.user?.id);
+
+      if (updatedUser) {
+        // Update local storage session
+        localStorage.setItem('hafiz_user_session', JSON.stringify(updatedUser));
+
+        // Update state
+        setAuth(prev => ({ ...prev, user: updatedUser }));
+      }
+    }
+  };
+
+  const getStudentHistory = async (studentId: string) => {
+    return await api.student.getStudentHistory(studentId);
+  };
+
   return (
-    <AppContext.Provider value={{ 
-      auth, queue, language, toggleLanguage, t, 
+    <AppContext.Provider value={{
+      auth, queue, language, toggleLanguage, t,
       login, logout, register, checkAuth, requestOtp, verifyOtp,
       checkIn, startSession, completeSession, skipSession, markAbsent,
       getActiveSession, getNextSession, getCurrentStudent,
-      getAllStudents, getPendingStudents, approveStudent
+      getAllStudents, getPendingStudents, approveStudent,
+      updateSchedule, deleteStudent, updateStudentMemorization, setupMemorization, getStudentHistory
     }}>
       {children}
     </AppContext.Provider>
