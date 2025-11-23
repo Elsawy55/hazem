@@ -4,8 +4,8 @@ import { AuthState, User, UserRole, UserStatus, QueueState, Session, SessionStat
 // -------------------------------------------------------------
 // IMPORTANT: Switching to Firebase Backend for Production
 // -------------------------------------------------------------
-import { api } from '../services/firebaseBackend'; 
-// import { api } from '../services/localBackend'; // Commented out for production
+// import { api } from '../services/firebaseBackend';
+import { api } from '../services/localBackend'; // Switched to local for development
 
 import { translations, TranslationKey } from '../translations';
 
@@ -15,24 +15,12 @@ interface AppContextType {
   language: Language;
   toggleLanguage: () => void;
   t: (key: TranslationKey, params?: Record<string, string | number>) => string;
-  
+
   // Auth Actions
   login: (phone: string, pass: string) => Promise<void>;
   logout: () => void;
   register: (data: any) => Promise<void>;
   checkAuth: () => Promise<void>;
-  requestOtp: (phone: string) => Promise<void>;
-  verifyOtp: (phone: string, code: string) => Promise<void>;
-
-  // Queue Actions
-  checkIn: (studentId: string) => Promise<void>;
-  startSession: () => void;
-  completeSession: (sessionId: string, notes?: string) => void;
-  skipSession: (sessionId: string) => void;
-  markAbsent: (sessionId: string) => void;
-  
-  // Getters
-  getActiveSession: () => Session | undefined;
   getNextSession: () => Session | undefined;
   getCurrentStudent: () => Student | undefined;
 
@@ -40,6 +28,20 @@ interface AppContextType {
   getAllStudents: () => Promise<Student[]>;
   getPendingStudents: () => Promise<Student[]>;
   approveStudent: (id: string, schedule: Schedule) => Promise<void>;
+  updateSchedule: (studentId: string, schedule: Schedule) => Promise<void>;
+  deleteStudent: (studentId: string) => Promise<void>;
+  updateStudentMemorization: (studentId: string, data: Partial<Student>) => Promise<void>;
+  setupMemorization: (data: any) => Promise<void>;
+
+  // Queue Actions
+  checkIn: (studentId: string) => Promise<void>;
+  startSession: () => void;
+  completeSession: (sessionId: string, notes?: string) => Promise<Student | null>;
+  skipSession: (sessionId: string) => void;
+  markAbsent: (sessionId: string) => void;
+  getActiveSession: () => Session | undefined;
+  requestOtp: (phone: string) => Promise<void>;
+  verifyOtp: (phone: string, code: string) => Promise<void>;
 }
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
@@ -56,7 +58,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
 
   const [queue, setQueue] = useState<QueueState>({
     currentSessionId: null,
-    sessions: [], 
+    sessions: [],
   });
 
   // Initialize Auth on Load
@@ -71,7 +73,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     } else {
       setAuth(prev => ({ ...prev, isLoading: false }));
     }
-    
+
     setQueue({ currentSessionId: null, sessions: [] });
   }, []);
 
@@ -129,21 +131,28 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
   }, []);
 
   const checkAuth = async () => {
+    console.log("checkAuth started");
     const savedUser = localStorage.getItem('hafiz_user_session');
     if (savedUser) {
-       const user = JSON.parse(savedUser);
-       if (user.role === UserRole.STUDENT) {
-          try {
-            const allStudents = await api.sheikh.getStudents();
-            const freshUser = allStudents.find(u => u.id === user.id);
-            if (freshUser) {
-               localStorage.setItem('hafiz_user_session', JSON.stringify(freshUser));
-               setAuth(prev => ({ ...prev, user: freshUser }));
-            }
-          } catch (e) {
-            console.error("Failed to refresh auth", e);
+      const user = JSON.parse(savedUser);
+      console.log("Current user in storage:", user);
+      if (user.role === UserRole.STUDENT) {
+        try {
+          const allStudents = await api.sheikh.getStudents();
+          console.log("All students fetched:", allStudents);
+          const freshUser = allStudents.find(u => u.id === user.id);
+          console.log("Fresh user data:", freshUser);
+          if (freshUser) {
+            localStorage.setItem('hafiz_user_session', JSON.stringify(freshUser));
+            setAuth(prev => ({ ...prev, user: freshUser }));
+            console.log("Auth state updated");
           }
-       }
+        } catch (e) {
+          console.error("Failed to refresh auth", e);
+        }
+      }
+    } else {
+      console.log("No saved user found");
     }
   };
 
@@ -177,20 +186,22 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     });
   }, []);
 
-  const completeSession = useCallback((sessionId: string, notes?: string) => {
+  const completeSession = async (sessionId: string, notes?: string) => {
+    const updatedStudent = await api.sheikh.completeSession(sessionId, notes);
     setQueue(prev => ({
       ...prev,
       currentSessionId: null,
-      sessions: prev.sessions.map(s => 
+      sessions: prev.sessions.map(s =>
         s.id === sessionId ? { ...s, status: SessionStatus.COMPLETED, notes } : s
       )
     }));
-  }, []);
+    return updatedStudent;
+  };
 
   const skipSession = useCallback((sessionId: string) => {
-     setQueue(prev => ({
+    setQueue(prev => ({
       ...prev,
-      sessions: prev.sessions.map(s => 
+      sessions: prev.sessions.map(s =>
         s.id === sessionId ? { ...s, status: SessionStatus.WAITING } : s
       )
     }));
@@ -199,12 +210,12 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
   const markAbsent = useCallback((sessionId: string) => {
     const session = queue.sessions.find(s => s.id === sessionId);
     if (session) {
-       api.sheikh.penalizeStudent(session.studentId, 30).catch(console.error);
+      api.sheikh.penalizeStudent(session.studentId, 30).catch(console.error);
     }
-    
+
     setQueue(prev => ({
       ...prev,
-      sessions: prev.sessions.map(s => 
+      sessions: prev.sessions.map(s =>
         s.id === sessionId ? { ...s, status: SessionStatus.ABSENT } : s
       )
     }));
@@ -226,7 +237,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
   }, [auth.user]);
 
   // --- SHEIKH ACTIONS ---
-  
+
   const getAllStudents = async () => {
     try {
       return await api.sheikh.getStudents();
@@ -249,13 +260,44 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     await api.sheikh.approveStudent(id, schedule);
   };
 
+  const updateSchedule = async (studentId: string, schedule: Schedule) => {
+    await api.sheikh.updateSchedule(studentId, schedule);
+  };
+
+  const deleteStudent = async (studentId: string) => {
+    await api.sheikh.deleteStudent(studentId);
+  };
+
+  const updateStudentMemorization = async (studentId: string, data: Partial<Student>) => {
+    await api.sheikh.updateStudentMemorization(studentId, data);
+  };
+
+  const setupMemorization = async (data: any) => {
+    if (auth.user?.id) {
+      await api.student.setupMemorization(auth.user.id, data);
+
+      // Fetch the updated user from the backend to ensure we have the calculated fields (like percentage)
+      const allStudents = await api.sheikh.getStudents();
+      const updatedUser = allStudents.find(u => u.id === auth.user?.id);
+
+      if (updatedUser) {
+        // Update local storage session
+        localStorage.setItem('hafiz_user_session', JSON.stringify(updatedUser));
+
+        // Update state
+        setAuth(prev => ({ ...prev, user: updatedUser }));
+      }
+    }
+  };
+
   return (
-    <AppContext.Provider value={{ 
-      auth, queue, language, toggleLanguage, t, 
+    <AppContext.Provider value={{
+      auth, queue, language, toggleLanguage, t,
       login, logout, register, checkAuth, requestOtp, verifyOtp,
       checkIn, startSession, completeSession, skipSession, markAbsent,
       getActiveSession, getNextSession, getCurrentStudent,
-      getAllStudents, getPendingStudents, approveStudent
+      getAllStudents, getPendingStudents, approveStudent,
+      updateSchedule, deleteStudent, updateStudentMemorization, setupMemorization
     }}>
       {children}
     </AppContext.Provider>

@@ -92,8 +92,8 @@ export const translations = {
     registerNow: "Register Now",
     alreadyHaveAccount: "Already have an account?",
     loginNow: "Login Now",
-    
-    // New Translations
+
+    // Dashboard & General
     dashboard: "Dashboard",
     myStudents: "My Students",
     searchStudents: "Search students...",
@@ -107,13 +107,76 @@ export const translations = {
     progress: "Progress",
     totalFines: "Total Fines",
     egp: "EGP",
-    fineApplied: "Fine Applied"
+
+    // Memorization Setup Wizard
+    setupTitle: "Memorization Setup",
+    setupSubtitle: "Let's start your journey",
+    welcomeHafiz: "Welcome, Hafiz!",
+    setupDescription: "Let's set up your memorization plan. We'll help you track your progress and reach your goals.",
+    startPoint: "Start Point",
+    whereToStart: "Where do you want to start?",
+    labelStartPoint: "Where will you start?", // Legacy
+    juz: "Juz",
+    page: "Page",
+    surah: "Surah",
+    optionJuz: "Juz", // Legacy
+    optionPage: "Page", // Legacy
+    selectJuz: "Select Juz",
+    startsAtPage: "Starts at page",
+    enterPage: "Enter Page",
+    enterJuzNum: "Enter Juz number (1-30)",
+    enterPageNum: "Enter page number (1-604)",
+    surahSelectNote: "Select the Surah you want to start from",
+    enterPageManual: "Enter Page Number",
+    dailyWerd: "Daily Werd",
+    labelDailyWerd: "Daily Memorization", // Legacy
+    howManyPages: "How many pages per day?",
+    dailyGoalDescription: "Set a realistic daily goal to maintain consistency.",
+    pages: "Pages",
+    pagesLabel: "pages", // Legacy
+    orCustom: "Or Custom",
+    enterCustomAmount: "Enter amount",
+    previousMemorization: "Previous Memorization",
+    labelPrevious: "Have you memorized before?", // Legacy
+    haveYouMemorized: "Have you memorized any parts before?",
+    yes: "Yes",
+    no: "No",
+    howMuchMemorized: "How much?",
+    howManyJuz: "How many Juz?",
+    howMany: "How many?",
+    surahManualNote: "For Surahs, please estimate total pages.",
+    summary: "Summary",
+    stepSummary: "Summary", // Legacy
+    allSet: "All Set!",
+    confirmDetails: "Please review your details before finishing.",
+    summaryText: "Please review your settings before confirming", // Legacy
+    totalMemorized: "Total Memorized",
+    currentPercentage: "Current Progress",
+    finishSetup: "Finish Setup",
+    confirmSetup: "Confirm & Start", // Legacy
+    memorizationProgress: "Memorization Progress",
+    completed: "Completed",
+    current: "Current",
+    target: "Target",
+    weeklyProgress: "Weekly Progress",
+    totalPages: "Total Pages",
+    startingFrom: "Starting from",
+    dir: "ltr",
+    fineApplied: "Fine Applied",
+    editMemorization: "Edit Memorization",
+    update: "Update",
+    cancel: "Cancel",
+    startPage: "Start Page",
+    dailyWerdPages: "Daily Werd Pages",
+    editSuccess: "Student progress updated successfully",
+    statusRefreshed: "Status refreshed successfully",
+    attendanceToast: "Attendance recorded — your memorization percentage is now {{percent}}%"
   },
   ar: {
     appName: "حافظ",
     welcomeTitle: "مرحباً بك في حافظ",
     welcomeSubtitle: "أدر حلقات تحفيظ القرآن بكفاءة وسهولة.",
-    roleSheikh: "أنا الشيخ",
+    roleSheikh: "أنا شيخ",
     roleSheikhDesc: "إدارة الطلاب، الجدول، وقائمة الانتظار.",
     roleStudent: "أنا طالب",
     roleStudentDesc: "عرض الجدول، تسجيل الحضور، ومتابعة التقدم.",
@@ -202,7 +265,7 @@ export const translations = {
     alreadyHaveAccount: "لديك حساب بالفعل؟",
     loginNow: "دخول الآن",
 
-    // New Translations
+    // Dashboard & General
     dashboard: "لوحة التحكم",
     myStudents: "الطلاب",
     searchStudents: "ابحث عن طالب...",
@@ -216,7 +279,70 @@ export const translations = {
     progress: "نسبة الحفظ",
     totalFines: "إجمالي الغرامات",
     egp: "جنيه",
-    fineApplied: "تم تطبيق غرامة"
+
+    // Memorization Setup Wizard
+    setupTitle: "إعداد الحفظ",
+    setupSubtitle: "لنبدأ رحلتك في الحفظ",
+    welcomeHafiz: "مرحباً بك يا حافظ!",
+    setupDescription: "دعنا نعد خطة الحفظ الخاصة بك. سنساعدك في تتبع تقدمك والوصول إلى أهدافك.",
+    startPoint: "نقطة البداية",
+    whereToStart: "من أين تريد أن تبدأ؟",
+    labelStartPoint: "من أين ستبدأ؟", // Legacy
+    juz: "جزء",
+    page: "صفحة",
+    surah: "سورة",
+    optionJuz: "جزء", // Legacy
+    optionPage: "صفحة", // Legacy
+    selectJuz: "اختر الجزء",
+    startsAtPage: "يبدأ من صفحة",
+    enterPage: "أدخل رقم الصفحة",
+    enterJuzNum: "أدخل رقم الجزء (1-30)",
+    enterPageNum: "أدخل رقم الصفحة (1-604)",
+    surahSelectNote: "اختر السورة التي تريد البدء منها",
+    enterPageManual: "أدخل رقم الصفحة يدوياً",
+    dailyWerd: "الورد اليومي",
+    labelDailyWerd: "الورد اليومي", // Legacy
+    howManyPages: "كم صفحة يومياً؟",
+    dailyGoalDescription: "ضع هدفاً يومياً واقعياً للاستمرار.",
+    pages: "صفحات",
+    pagesLabel: "صفحات", // Legacy
+    orCustom: "أو عدد مخصص",
+    enterCustomAmount: "أدخل العدد",
+    previousMemorization: "حفظ سابق",
+    labelPrevious: "هل حفظت من قبل؟", // Legacy
+    haveYouMemorized: "هل حفظت أجزاء من قبل؟",
+    yes: "نعم",
+    no: "لا",
+    howMuchMemorized: "كم حفظت؟",
+    howManyJuz: "كم جزء؟",
+    howMany: "كم؟",
+    surahManualNote: "للسور، يرجى تقدير عدد الصفحات الإجمالي.",
+    summary: "الملخص",
+    stepSummary: "ملخص", // Legacy
+    allSet: "جاهزون!",
+    confirmDetails: "يرجى مراجعة التفاصيل قبل الانتهاء.",
+    summaryText: "يرجى مراجعة الإعدادات قبل التأكيد", // Legacy
+    totalMemorized: "إجمالي المحفوظ",
+    currentPercentage: "النسبة الحالية",
+    finishSetup: "إتمام الإعداد",
+    confirmSetup: "تأكيد والبدء", // Legacy
+    memorizationProgress: "تقدم الحفظ",
+    completed: "مكتمل",
+    current: "الحالي",
+    target: "الهدف",
+    weeklyProgress: "التقدم الأسبوعي",
+    totalPages: "إجمالي الصفحات",
+    startingFrom: "البداية من",
+    dir: "rtl",
+    fineApplied: "تم تطبيق غرامة",
+    editMemorization: "تعديل بيانات الحفظ",
+    update: "تحديث",
+    cancel: "إلغاء",
+    startPage: "صفحة البداية",
+    dailyWerdPages: "الورد اليومي (صفحات)",
+    editSuccess: "تم تحديث بيانات الطالب بنجاح",
+    statusRefreshed: "تم تحديث الحالة بنجاح",
+    attendanceToast: "تم تسجيل الحضور — نسبة حفظك الآن {{percent}}%"
   }
 };
 

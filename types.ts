@@ -38,6 +38,8 @@ export interface User {
   phoneNumber: string;
   password?: string; // In a real app, this would be hashed
   schedule?: Schedule;
+  archived?: boolean;
+  deletedAt?: string;
 }
 
 export interface Student extends User {
@@ -47,6 +49,18 @@ export interface Student extends User {
   lastAttendance?: string;
   notes?: string; // Private notes for Sheikh
   totalFines: number; // Amount in EGP
+
+  // Memorization tracking fields
+  startPage?: number; // Starting page for memorization
+  dailyWerdPages?: number; // Pages to memorize per session
+  totalPagesMemorized?: number; // Total pages memorized so far
+  memorizationPercentage?: number; // Percentage of Quran memorized (0-100)
+  initialMemorizedType?: 'juz' | 'pages' | 'surah' | null; // How initial memorization was measured
+  initialMemorizedValue?: number; // Initial amount memorized
+}
+
+export interface Sheikh extends User {
+  // Sheikh-specific fields if needed
 }
 
 export interface Session {
@@ -69,4 +83,12 @@ export interface AuthState {
   isAuthenticated: boolean;
   isLoading: boolean;
   error?: string;
+}
+
+export interface AuditLog {
+  id: string;
+  action: 'CHECK_IN' | 'SESSION_START' | 'SESSION_COMPLETE' | 'SESSION_SKIP' | 'ABSENT' | 'REGISTER' | 'APPROVE' | 'SCHEDULE_ASSIGN';
+  details: string;
+  performedBy: string;
+  timestamp: string;
 }

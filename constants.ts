@@ -27,3 +27,6 @@ export const PROGRESS_DATA = [
   { name: 'Thu', pages: 0 },
   { name: 'Fri', pages: 0 },
 ];
+
+// Total pages in the Quran
+export const TOTAL_QURAN_PAGES = 604;
