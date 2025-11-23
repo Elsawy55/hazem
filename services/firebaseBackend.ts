@@ -1,10 +1,19 @@
-import { db } from '../firebaseConfig';
+// services/firebaseBackend.ts
+import { getDb } from '../firebaseConfig';
 import { collection, getDocs, query, where, doc, setDoc, updateDoc, getDoc } from 'firebase/firestore';
 import { User, UserRole, UserStatus, Student, Session, SessionStatus, Schedule } from '../types';
 import { MOCK_SHEIKH } from '../constants';
 
 const USERS_COLLECTION = 'users';
 const SESSIONS_COLLECTION = 'sessions';
+
+// Initialize db
+let db: any;
+try {
+  db = getDb();
+} catch (e) {
+  console.warn("DB not initialized");
+}
 
 export const api = {
   auth: {
@@ -83,16 +92,18 @@ export const api = {
 
   sheikh: {
     getStudents: async (): Promise<Student[]> => {
+      const db = getDb();
       const q = query(collection(db, USERS_COLLECTION), where("role", "==", UserRole.STUDENT));
       const querySnapshot = await getDocs(q);
       const students: Student[] = [];
-      querySnapshot.forEach((doc) => {
-        students.push(doc.data() as Student);
+      querySnapshot.forEach((d) => {
+        students.push(d.data() as Student);
       });
       return students;
     },
 
     approveStudent: async (id: string, schedule: Schedule): Promise<void> => {
+      const db = getDb();
       const studentRef = doc(db, USERS_COLLECTION, id);
       await updateDoc(studentRef, {
         status: UserStatus.ACTIVE,
@@ -208,6 +219,7 @@ export const api = {
 
   student: {
     checkIn: async (studentId: string): Promise<Session> => {
+      const db = getDb();
       const studentRef = doc(db, USERS_COLLECTION, studentId);
       const studentSnap = await getDoc(studentRef);
 
