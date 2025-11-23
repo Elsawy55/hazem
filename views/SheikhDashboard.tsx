@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { Play, CheckCircle, SkipForward, UserX, Calendar, Clock, Users, UserPlus, Search, MessageCircle, Phone, BookOpen, LayoutDashboard, AlertTriangle, Banknote, Edit, Save, X } from 'lucide-react';
+import { Play, CheckCircle, SkipForward, UserX, Calendar, Clock, Users, UserPlus, Search, MessageCircle, Phone, BookOpen, LayoutDashboard, AlertTriangle, Banknote, Edit, Save, X, Trash2 } from 'lucide-react';
 import { useApp } from '../context/AppContext';
 import { Card } from '../components/ui/Card';
 import { Button } from '../components/ui/Button';
@@ -11,7 +11,7 @@ type TabType = 'live' | 'schedule' | 'students' | 'requests';
 export const SheikhDashboard: React.FC = () => {
   const {
     queue, startSession, completeSession, skipSession, markAbsent, getActiveSession,
-    getAllStudents, approveStudent, updateStudentMemorization,
+    getAllStudents, approveStudent, updateStudentMemorization, deleteStudent, updateSchedule,
     t, language
   } = useApp();
 
@@ -60,9 +60,29 @@ export const SheikhDashboard: React.FC = () => {
 
   const handleApprove = async () => {
     if (selectedStudent) {
-      await approveStudent(selectedStudent.id, scheduleForm);
+      if (selectedStudent.status === UserStatus.PENDING) {
+        await approveStudent(selectedStudent.id, scheduleForm);
+      } else {
+        await updateSchedule(selectedStudent.id, scheduleForm);
+      }
       setSelectedStudent(null);
       loadData();
+    }
+  };
+
+  const handleDelete = async (studentId: string) => {
+    if (window.confirm('Are you sure you want to delete this student? This action cannot be undone.')) {
+      await deleteStudent(studentId);
+      loadData();
+    }
+  };
+
+  const handleScheduleClick = (student: Student) => {
+    setSelectedStudent(student);
+    if (student.schedule) {
+      setScheduleForm(student.schedule);
+    } else {
+      setScheduleForm({ days: ['MON', 'THU'], startTime: '16:00', endTime: '16:20' });
     }
   };
 
@@ -216,7 +236,7 @@ export const SheikhDashboard: React.FC = () => {
                   />
                   <div className="grid grid-cols-2 gap-3">
                     <Button onClick={handleComplete} icon={<CheckCircle size={18} />} className="py-3">{t('finishSession')}</Button>
-                    <Button variant="danger" onClick={() => { }} icon={<SkipForward size={18} className={iconStyles} />}>{t('stopEarly')}</Button>
+                    <Button variant="danger" onClick={handleComplete} icon={<SkipForward size={18} className={iconStyles} />}>{t('stopEarly')}</Button>
                   </div>
                 </div>
               </Card>
@@ -227,7 +247,7 @@ export const SheikhDashboard: React.FC = () => {
                 </div>
                 <h3 className="text-xl font-bold text-slate-700 mb-2">{t('readyToStart')}</h3>
                 <p className="text-slate-500 mb-6 text-center max-w-sm">
-                  {queue.sessions.filter(s => s.status === SessionStatus.READY).length} {t('studentsReady')}
+                  {queue.sessions.filter(s => s.status === SessionStatus.READY || s.status === SessionStatus.WAITING).length} {t('studentsReady')}
                 </p>
                 <Button size="lg" onClick={startSession}>{t('startNextSession')}</Button>
               </Card>
@@ -367,7 +387,7 @@ export const SheikhDashboard: React.FC = () => {
                     </div>
                     <div>
                       <p className="text-xs text-slate-500 mb-1">{t('progress')}</p>
-                      <p className="font-bold text-primary-600">{student.memorizationPercentage || 0}%</p>
+                      <p className="font-bold text-primary-600">{(student.memorizationPercentage || 0).toFixed(1)}%</p>
                     </div>
                     <div className={`${student.totalFines > 0 ? 'text-red-600' : 'text-slate-400'}`}>
                       <p className="text-xs opacity-80 mb-1">{t('totalFines')}</p>
@@ -387,11 +407,14 @@ export const SheikhDashboard: React.FC = () => {
                 </div>
 
                 <div className="flex gap-2 mt-auto pt-4 border-t border-slate-50">
-                  <Button fullWidth size="sm" variant="secondary" icon={<MessageCircle size={16} />}>
-                    {t('contact')}
+                  <Button fullWidth size="sm" variant="secondary" icon={<Calendar size={16} />} onClick={() => handleScheduleClick(student)}>
+                    {t('assignSchedule')}
                   </Button>
                   <Button fullWidth size="sm" variant="outline" icon={<Edit size={16} />} onClick={() => handleEditClick(student)}>
                     {t('editMemorization')}
+                  </Button>
+                  <Button size="sm" variant="danger" onClick={() => handleDelete(student.id)}>
+                    <Trash2 size={16} />
                   </Button>
                 </div>
               </Card>
@@ -436,110 +459,115 @@ export const SheikhDashboard: React.FC = () => {
             </div>
           )}
 
-          {/* APPROVAL MODAL */}
-          {selectedStudent && (
-            <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-              <div className="bg-white rounded-2xl shadow-xl max-w-md w-full p-6 animate-in zoom-in-95 duration-200">
-                <h3 className="text-xl font-bold mb-4">{t('assignSchedule')} for {selectedStudent.name}</h3>
+        </div>
+      )}
 
-                <div className="space-y-4">
-                  <div>
-                    <label className="block text-sm font-medium text-slate-700 mb-2">{t('selectDays')}</label>
-                    <div className="flex gap-2 flex-wrap">
-                      {['SAT', 'SUN', 'MON', 'TUE', 'WED', 'THU', 'FRI'].map(day => (
-                        <button
-                          key={day}
-                          onClick={() => {
-                            const days = scheduleForm.days.includes(day as any)
-                              ? scheduleForm.days.filter(d => d !== day)
-                              : [...scheduleForm.days, day];
-                            setScheduleForm({ ...scheduleForm, days: days as any });
-                          }}
-                          className={`px-3 py-1 rounded-lg text-sm font-medium transition-colors ${scheduleForm.days.includes(day as any) ? 'bg-primary-600 text-white' : 'bg-slate-100 text-slate-600'}`}
-                        >
-                          {day}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
+      {/* APPROVAL MODAL */}
+      {selectedStudent && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl shadow-xl max-w-md w-full p-6 animate-in zoom-in-95 duration-200">
+            <h3 className="text-xl font-bold mb-4">
+              {selectedStudent.status === UserStatus.PENDING ? t('assignSchedule') : t('scheduleFor')} - {selectedStudent.name}
+            </h3>
 
-                  <div>
-                    <label className="block text-sm font-medium text-slate-700 mb-2">{t('selectTime')}</label>
-                    <div className="grid grid-cols-2 gap-4">
-                      <input
-                        type="time"
-                        value={scheduleForm.startTime}
-                        onChange={(e) => setScheduleForm({ ...scheduleForm, startTime: e.target.value })}
-                        className="w-full p-2 border border-slate-200 rounded-lg"
-                      />
-                      <input
-                        type="time"
-                        value={scheduleForm.endTime}
-                        onChange={(e) => setScheduleForm({ ...scheduleForm, endTime: e.target.value })}
-                        className="w-full p-2 border border-slate-200 rounded-lg"
-                      />
-                    </div>
-                  </div>
-
-                  <div className="flex gap-3 mt-6">
-                    <Button fullWidth onClick={handleApprove}>{t('confirmApproval')}</Button>
-                    <Button fullWidth variant="ghost" onClick={() => setSelectedStudent(null)}>{t('back')}</Button>
-                  </div>
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-2">{t('selectDays')}</label>
+                <div className="flex gap-2 flex-wrap">
+                  {['SAT', 'SUN', 'MON', 'TUE', 'WED', 'THU', 'FRI'].map(day => (
+                    <button
+                      key={day}
+                      onClick={() => {
+                        const days = scheduleForm.days.includes(day as any)
+                          ? scheduleForm.days.filter(d => d !== day)
+                          : [...scheduleForm.days, day];
+                        setScheduleForm({ ...scheduleForm, days: days as any });
+                      }}
+                      className={`px-3 py-1 rounded-lg text-sm font-medium transition-colors ${scheduleForm.days.includes(day as any) ? 'bg-primary-600 text-white' : 'bg-slate-100 text-slate-600'}`}
+                    >
+                      {day}
+                    </button>
+                  ))}
                 </div>
               </div>
-            </div>
-          )}
 
-          {/* EDIT MEMORIZATION MODAL */}
-          {editingStudent && (
-            <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-              <div className="bg-white rounded-2xl shadow-xl max-w-md w-full p-6 animate-in zoom-in-95 duration-200">
-                <div className="flex justify-between items-center mb-4">
-                  <h3 className="text-xl font-bold">{t('editMemorization')}</h3>
-                  <button onClick={() => setEditingStudent(null)} className="text-slate-400 hover:text-slate-600">
-                    <X size={24} />
-                  </button>
-                </div>
-
-                <div className="space-y-4">
-                  <div>
-                    <label className="block text-sm font-medium text-slate-700 mb-1">{t('startPage')}</label>
-                    <input
-                      type="number"
-                      value={editForm.startPage}
-                      onChange={(e) => setEditForm({ ...editForm, startPage: parseInt(e.target.value) || 0 })}
-                      className="w-full p-3 border border-slate-200 rounded-xl focus:border-primary-500 outline-none"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-slate-700 mb-1">{t('dailyWerdPages')}</label>
-                    <input
-                      type="number"
-                      value={editForm.dailyWerdPages}
-                      onChange={(e) => setEditForm({ ...editForm, dailyWerdPages: parseInt(e.target.value) || 0 })}
-                      className="w-full p-3 border border-slate-200 rounded-xl focus:border-primary-500 outline-none"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-slate-700 mb-1">{t('totalMemorized')}</label>
-                    <input
-                      type="number"
-                      value={editForm.totalPagesMemorized}
-                      onChange={(e) => setEditForm({ ...editForm, totalPagesMemorized: parseInt(e.target.value) || 0 })}
-                      className="w-full p-3 border border-slate-200 rounded-xl focus:border-primary-500 outline-none"
-                    />
-                  </div>
-
-                  <div className="flex gap-3 mt-6">
-                    <Button fullWidth onClick={handleSaveMemorization} icon={<Save size={18} />}>{t('update')}</Button>
-                    <Button fullWidth variant="ghost" onClick={() => setEditingStudent(null)}>{t('cancel')}</Button>
-                  </div>
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-2">{t('selectTime')}</label>
+                <div className="grid grid-cols-2 gap-4">
+                  <input
+                    type="time"
+                    value={scheduleForm.startTime}
+                    onChange={(e) => setScheduleForm({ ...scheduleForm, startTime: e.target.value })}
+                    className="w-full p-2 border border-slate-200 rounded-lg"
+                  />
+                  <input
+                    type="time"
+                    value={scheduleForm.endTime}
+                    onChange={(e) => setScheduleForm({ ...scheduleForm, endTime: e.target.value })}
+                    className="w-full p-2 border border-slate-200 rounded-lg"
+                  />
                 </div>
               </div>
+
+              <div className="flex gap-3 mt-6">
+                <Button fullWidth onClick={handleApprove}>
+                  {selectedStudent.status === UserStatus.PENDING ? t('confirmApproval') : t('update')}
+                </Button>
+                <Button fullWidth variant="ghost" onClick={() => setSelectedStudent(null)}>{t('back')}</Button>
+              </div>
             </div>
-          )}
+          </div>
+        </div>
+      )}
+
+      {/* EDIT MEMORIZATION MODAL */}
+      {editingStudent && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl shadow-xl max-w-md w-full p-6 animate-in zoom-in-95 duration-200">
+            <div className="flex justify-between items-center mb-4">
+              <h3 className="text-xl font-bold">{t('editMemorization')}</h3>
+              <button onClick={() => setEditingStudent(null)} className="text-slate-400 hover:text-slate-600">
+                <X size={24} />
+              </button>
+            </div>
+
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-1">{t('startPage')}</label>
+                <input
+                  type="number"
+                  value={editForm.startPage}
+                  onChange={(e) => setEditForm({ ...editForm, startPage: parseInt(e.target.value) || 0 })}
+                  className="w-full p-3 border border-slate-200 rounded-xl focus:border-primary-500 outline-none"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-1">{t('dailyWerdPages')}</label>
+                <input
+                  type="number"
+                  value={editForm.dailyWerdPages}
+                  onChange={(e) => setEditForm({ ...editForm, dailyWerdPages: parseInt(e.target.value) || 0 })}
+                  className="w-full p-3 border border-slate-200 rounded-xl focus:border-primary-500 outline-none"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-1">{t('totalMemorized')}</label>
+                <input
+                  type="number"
+                  value={editForm.totalPagesMemorized}
+                  onChange={(e) => setEditForm({ ...editForm, totalPagesMemorized: parseInt(e.target.value) || 0 })}
+                  className="w-full p-3 border border-slate-200 rounded-xl focus:border-primary-500 outline-none"
+                />
+              </div>
+
+              <div className="flex gap-3 mt-6">
+                <Button fullWidth onClick={handleSaveMemorization} icon={<Save size={18} />}>{t('update')}</Button>
+                <Button fullWidth variant="ghost" onClick={() => setEditingStudent(null)}>{t('cancel')}</Button>
+              </div>
+            </div>
+          </div>
         </div>
       )}
     </div>

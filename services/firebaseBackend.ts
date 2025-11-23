@@ -124,6 +124,81 @@ export const api = {
           totalFines: currentFines + amount
         });
       }
+    },
+
+    startSession: async (sessionId: string): Promise<void> => {
+      const sessionRef = doc(db, SESSIONS_COLLECTION, sessionId);
+      await updateDoc(sessionRef, {
+        status: SessionStatus.IN_PROGRESS,
+        startedAt: new Date().toISOString()
+      });
+    },
+
+    completeSession: async (sessionId: string, notes?: string): Promise<Student | null> => {
+      const sessionRef = doc(db, SESSIONS_COLLECTION, sessionId);
+      const sessionSnap = await getDoc(sessionRef);
+
+      if (!sessionSnap.exists()) throw new Error('Session not found');
+      const sessionData = sessionSnap.data() as Session;
+
+      await updateDoc(sessionRef, {
+        status: SessionStatus.COMPLETED,
+        notes: notes || '',
+        completedAt: new Date().toISOString()
+      });
+
+      // Update student progress
+      const studentRef = doc(db, USERS_COLLECTION, sessionData.studentId);
+      const studentSnap = await getDoc(studentRef);
+
+      if (studentSnap.exists()) {
+        const student = studentSnap.data() as Student;
+        const dailyWerd = student.dailyWerdPages || 1;
+        const TOTAL_QURAN_PAGES = 604;
+
+        let newTotal = (student.totalPagesMemorized || 0) + dailyWerd;
+        if (newTotal > TOTAL_QURAN_PAGES) newTotal = TOTAL_QURAN_PAGES;
+
+        const memorizationPercentage = (newTotal / TOTAL_QURAN_PAGES) * 100;
+
+        await updateDoc(studentRef, {
+          totalPagesMemorized: newTotal,
+          memorizationPercentage: Math.min(Math.round(memorizationPercentage * 100) / 100, 100),
+          lastAttendance: new Date().toISOString()
+        });
+
+        return { ...student, totalPagesMemorized: newTotal, memorizationPercentage };
+      }
+      return null;
+    },
+
+    skipSession: async (sessionId: string): Promise<void> => {
+      const sessionRef = doc(db, SESSIONS_COLLECTION, sessionId);
+      await updateDoc(sessionRef, {
+        status: SessionStatus.WAITING
+      });
+    },
+
+    markAbsent: async (sessionId: string): Promise<void> => {
+      const sessionRef = doc(db, SESSIONS_COLLECTION, sessionId);
+      await updateDoc(sessionRef, {
+        status: SessionStatus.ABSENT
+      });
+
+      // Apply penalty
+      const sessionSnap = await getDoc(sessionRef);
+      if (sessionSnap.exists()) {
+        const sessionData = sessionSnap.data() as Session;
+        // Re-use penalize logic
+        const studentRef = doc(db, USERS_COLLECTION, sessionData.studentId);
+        const studentSnap = await getDoc(studentRef);
+        if (studentSnap.exists()) {
+          const currentFines = (studentSnap.data() as Student).totalFines || 0;
+          await updateDoc(studentRef, {
+            totalFines: currentFines + 30 // 30 EGP fine
+          });
+        }
+      }
     }
   },
 

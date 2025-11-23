@@ -2,6 +2,7 @@
 export const translations = {
   en: {
     appName: "Hafiz",
+    welcome: "Welcome",
     welcomeTitle: "Welcome to Hafiz",
     welcomeSubtitle: "Manage your Quran memorization journey efficiently.",
     roleSheikh: "I am a Sheikh",
@@ -126,6 +127,7 @@ export const translations = {
     enterPage: "Enter Page",
     enterJuzNum: "Enter Juz number (1-30)",
     enterPageNum: "Enter page number (1-604)",
+    selectSurah: "Select Surah",
     surahSelectNote: "Select the Surah you want to start from",
     enterPageManual: "Enter Page Number",
     dailyWerd: "Daily Werd",
@@ -158,7 +160,7 @@ export const translations = {
     completed: "Completed",
     current: "Current",
     target: "Target",
-    weeklyProgress: "Weekly Progress",
+
     totalPages: "Total Pages",
     startingFrom: "Starting from",
     dir: "ltr",
@@ -170,10 +172,18 @@ export const translations = {
     dailyWerdPages: "Daily Werd Pages",
     editSuccess: "Student progress updated successfully",
     statusRefreshed: "Status refreshed successfully",
-    attendanceToast: "Attendance recorded — your memorization percentage is now {{percent}}%"
+    attendanceToast: "Attendance recorded — your memorization percentage is now {{percent}}%",
+    mySchedule: "My Schedule",
+    sessionHistory: "Session History",
+    notes: "Notes",
+    date: "Date",
+    noHistory: "No session history available yet.",
+    startTime: "Start Time",
+    endTime: "End Time"
   },
   ar: {
     appName: "حافظ",
+    welcome: "مرحباً",
     welcomeTitle: "مرحباً بك في حافظ",
     welcomeSubtitle: "أدر حلقات تحفيظ القرآن بكفاءة وسهولة.",
     roleSheikh: "أنا شيخ",
@@ -298,6 +308,7 @@ export const translations = {
     enterPage: "أدخل رقم الصفحة",
     enterJuzNum: "أدخل رقم الجزء (1-30)",
     enterPageNum: "أدخل رقم الصفحة (1-604)",
+    selectSurah: "اختر السورة",
     surahSelectNote: "اختر السورة التي تريد البدء منها",
     enterPageManual: "أدخل رقم الصفحة يدوياً",
     dailyWerd: "الورد اليومي",
@@ -330,7 +341,7 @@ export const translations = {
     completed: "مكتمل",
     current: "الحالي",
     target: "الهدف",
-    weeklyProgress: "التقدم الأسبوعي",
+
     totalPages: "إجمالي الصفحات",
     startingFrom: "البداية من",
     dir: "rtl",
@@ -342,7 +353,14 @@ export const translations = {
     dailyWerdPages: "الورد اليومي (صفحات)",
     editSuccess: "تم تحديث بيانات الطالب بنجاح",
     statusRefreshed: "تم تحديث الحالة بنجاح",
-    attendanceToast: "تم تسجيل الحضور — نسبة حفظك الآن {{percent}}%"
+    attendanceToast: "تم تسجيل الحضور — نسبة حفظك الآن {{percent}}%",
+    mySchedule: "جدولي",
+    sessionHistory: "سجل التسميع",
+    notes: "الملاحظات",
+    date: "التاريخ",
+    noHistory: "لا يوجد سجل جلسات حتى الآن.",
+    startTime: "وقت البدء",
+    endTime: "وقت الانتهاء"
   }
 };
 

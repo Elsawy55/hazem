@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { BookOpen, CheckCircle, ChevronRight, ChevronLeft, Calculator, AlertCircle } from 'lucide-react';
 import { useApp } from '../context/AppContext';
 import { Button } from './ui/Button';
+import { SURAH_NAMES, JUZ_NAMES } from '../constants';
 
 interface MemorizationSetupModalProps {
     isOpen: boolean;
@@ -48,6 +49,10 @@ export default function MemorizationSetupModal({ isOpen, onClose, onSave }: Memo
         if (startType === 'juz') {
             sPage = Math.round((startValue - 1) * 20) + 1; // Approx 20 pages per juz
             if (sPage < 1) sPage = 1;
+        } else if (startType === 'surah') {
+            // For Surah, startValue is the Surah ID, so we find the start page
+            const surah = SURAH_NAMES.find(s => s.id === startValue);
+            sPage = surah ? surah.startPage : 1;
         } else {
             sPage = startValue;
         }
@@ -174,15 +179,18 @@ export default function MemorizationSetupModal({ isOpen, onClose, onSave }: Memo
                             <div className="bg-slate-50 p-6 rounded-2xl border border-slate-100">
                                 {startType === 'juz' && (
                                     <div>
-                                        <label className="block text-xs font-bold text-slate-500 uppercase mb-2">{t('selectJuz')} (1-30)</label>
-                                        <input
-                                            type="number"
-                                            min="1"
-                                            max="30"
+                                        <label className="block text-xs font-bold text-slate-500 uppercase mb-2">{t('selectJuz')}</label>
+                                        <select
                                             value={startValue}
-                                            onChange={(e) => setStartValue(parseInt(e.target.value) || 1)}
-                                            className="w-full text-center text-3xl font-bold bg-white border-2 border-slate-200 rounded-xl p-4 focus:border-primary-500 outline-none transition-colors"
-                                        />
+                                            onChange={(e) => setStartValue(parseInt(e.target.value))}
+                                            className="w-full text-lg font-bold bg-white border-2 border-slate-200 rounded-xl p-4 focus:border-primary-500 outline-none transition-colors"
+                                        >
+                                            {JUZ_NAMES.map(juz => (
+                                                <option key={juz.id} value={juz.id}>
+                                                    {language === 'ar' ? juz.nameAr : juz.nameEn}
+                                                </option>
+                                            ))}
+                                        </select>
                                         <p className="text-center text-sm text-slate-400 mt-3">
                                             {t('startsAtPage')}: <span className="font-bold text-slate-800">{Math.round((startValue - 1) * 20) + 1}</span>
                                         </p>
@@ -205,16 +213,18 @@ export default function MemorizationSetupModal({ isOpen, onClose, onSave }: Memo
 
                                 {startType === 'surah' && (
                                     <div className="text-center">
-                                        <p className="text-slate-600 mb-4">{t('surahSelectNote')}</p>
-                                        <label className="block text-xs font-bold text-slate-500 uppercase mb-2">{t('enterPageManual')}</label>
-                                        <input
-                                            type="number"
-                                            min="1"
-                                            max="604"
+                                        <label className="block text-xs font-bold text-slate-500 uppercase mb-2">{t('selectSurah')}</label>
+                                        <select
                                             value={startValue}
-                                            onChange={(e) => setStartValue(parseInt(e.target.value) || 1)}
-                                            className="w-full text-center text-3xl font-bold bg-white border-2 border-slate-200 rounded-xl p-4 focus:border-primary-500 outline-none transition-colors"
-                                        />
+                                            onChange={(e) => setStartValue(parseInt(e.target.value))}
+                                            className="w-full text-lg font-bold bg-white border-2 border-slate-200 rounded-xl p-4 focus:border-primary-500 outline-none transition-colors"
+                                        >
+                                            {SURAH_NAMES.map(surah => (
+                                                <option key={surah.id} value={surah.id}>
+                                                    {surah.id}. {language === 'ar' ? surah.nameAr : surah.nameEn}
+                                                </option>
+                                            ))}
+                                        </select>
                                     </div>
                                 )}
                             </div>

@@ -252,6 +252,46 @@ export const api = {
         saveUsers(users);
         addAuditLog('SCHEDULE_ASSIGN', `Updated memorization settings for ${student.name}`, MOCK_SHEIKH.id);
       }
+    },
+
+    startSession: async (sessionId: string): Promise<void> => {
+      const sessions = getSessions();
+      const idx = sessions.findIndex(s => s.id === sessionId);
+      if (idx !== -1) {
+        sessions[idx].status = SessionStatus.IN_PROGRESS;
+        saveSessions(sessions);
+        addAuditLog('SESSION_START', `Started session for ${sessions[idx].studentName}`, MOCK_SHEIKH.id);
+      }
+    },
+
+    skipSession: async (sessionId: string): Promise<void> => {
+      const sessions = getSessions();
+      const idx = sessions.findIndex(s => s.id === sessionId);
+      if (idx !== -1) {
+        sessions[idx].status = SessionStatus.WAITING;
+        saveSessions(sessions);
+      }
+    },
+
+    markAbsent: async (sessionId: string): Promise<void> => {
+      const sessions = getSessions();
+      const idx = sessions.findIndex(s => s.id === sessionId);
+      if (idx !== -1) {
+        sessions[idx].status = SessionStatus.ABSENT;
+        saveSessions(sessions);
+
+        // Apply penalty
+        const users = getUsers();
+        const studentIdx = users.findIndex(u => u.id === sessions[idx].studentId);
+        if (studentIdx !== -1) {
+          const student = users[studentIdx] as Student;
+          student.totalFines = (student.totalFines || 0) + 30; // 30 EGP fine
+          users[studentIdx] = student;
+          saveUsers(users);
+        }
+
+        addAuditLog('ABSENT', `Marked ${sessions[idx].studentName} absent`, MOCK_SHEIKH.id);
+      }
     }
   },
 
@@ -262,8 +302,19 @@ export const api = {
 
       if (!student) throw new Error('Student not found');
 
-      const now = new Date();
       const sessions = getSessions();
+
+      // Check for existing active session
+      const existingSession = sessions.find(s =>
+        s.studentId === studentId &&
+        (s.status === SessionStatus.WAITING || s.status === SessionStatus.READY || s.status === SessionStatus.IN_PROGRESS)
+      );
+
+      if (existingSession) {
+        throw new Error('You are already checked in.');
+      }
+
+      const now = new Date();
 
       const session: Session = {
         id: `session-${Date.now()}`,
@@ -317,6 +368,13 @@ export const api = {
 
       saveUsers(users);
       addAuditLog('REGISTER', `Setup memorization for ${student.name}. Initial: ${initialPages} pages`, student.id);
+    },
+
+    getStudentHistory: async (studentId: string): Promise<Session[]> => {
+      const sessions = getSessions();
+      return sessions
+        .filter(s => s.studentId === studentId && s.status === SessionStatus.COMPLETED)
+        .sort((a, b) => b.id.localeCompare(a.id)); // Sort by newest first (assuming ID is timestamp-based)
     }
   }
 };
