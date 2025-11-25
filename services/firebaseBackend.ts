@@ -1,6 +1,6 @@
 // services/firebaseBackend.ts
 import { getDb } from '../firebaseConfig';
-import { collection, getDocs, query, where, doc, setDoc, updateDoc, getDoc } from 'firebase/firestore';
+import { collection, getDocs, query, where, doc, setDoc, updateDoc, getDoc, deleteDoc } from 'firebase/firestore';
 import { User, UserRole, UserStatus, Student, Session, SessionStatus, Schedule } from '../types';
 import { MOCK_SHEIKH } from '../constants';
 
@@ -120,10 +120,7 @@ export const api = {
 
     deleteStudent: async (studentId: string): Promise<void> => {
       const studentRef = doc(db, USERS_COLLECTION, studentId);
-      await updateDoc(studentRef, {
-        archived: true,
-        deletedAt: new Date().toISOString()
-      });
+      await deleteDoc(studentRef);
     },
 
     penalizeStudent: async (id: string, amount: number): Promise<void> => {
