@@ -62,9 +62,7 @@ export const StudentDashboard = () => {
     const fetchHadith = async () => {
       if (student) {
         try {
-          console.log("Fetching daily hadith for student:", student.id);
           const data = await api.hadith.getTodayHadithForStudent(student.id);
-          console.log("Fetched daily hadith data:", data);
           setDailyHadith(data);
         } catch (error) {
           console.error("Error fetching daily hadith:", error);
