@@ -1,6 +1,7 @@
 // firebaseConfig.ts
 import { initializeApp } from "firebase/app";
-import { getFirestore, type Firestore } from "firebase/firestore";
+import { getFirestore } from "firebase/firestore";
+import { getAuth } from "firebase/auth";
 
 const firebaseConfig = {
   apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
@@ -11,24 +12,7 @@ const firebaseConfig = {
   appId: import.meta.env.VITE_FIREBASE_APP_ID,
 };
 
-let app: ReturnType<typeof initializeApp> | undefined;
-let dbInstance: Firestore | undefined;
+export const app = initializeApp(firebaseConfig);
+export const db = getFirestore(app);
+export const auth = getAuth(app);
 
-try {
-  if (firebaseConfig.apiKey) {
-    app = initializeApp(firebaseConfig);
-    dbInstance = getFirestore(app);
-  } else {
-    console.warn("Firebase keys are missing. Running without DB.");
-  }
-} catch (err) {
-  console.error("Error initializing Firebase:", err);
-}
-
-// بدل ما نصدر db مباشرة، نصدر دالة تضمن وجوده
-export function getDb(): Firestore {
-  if (!dbInstance) {
-    throw new Error("Firestore is not initialized. Make sure environment variables are set.");
-  }
-  return dbInstance;
-}

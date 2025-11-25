@@ -22,7 +22,7 @@ import {
   onAuthStateChanged,
   User
 } from 'firebase/auth';
-import { app } from '../firebase';
+import { app, db, auth } from '../firebaseConfig';
 import {
   UserRole,
   UserStatus,
@@ -38,9 +38,6 @@ import {
 } from '../types';
 import { NAWAWI_HADITHS } from '../data/nawawi';
 import { TOTAL_QURAN_PAGES } from '../constants';
-
-const db = getFirestore(app);
-const auth = getAuth(app);
 
 // Collection references
 const USERS_COLLECTION = 'users';
