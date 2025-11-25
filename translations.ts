@@ -179,7 +179,18 @@ export const translations = {
     date: "Date",
     noHistory: "No session history available yet.",
     startTime: "Start Time",
-    endTime: "End Time"
+    endTime: "End Time",
+    schedule: "Schedule",
+    edit: "Edit",
+    studentDashboard: "Student Dashboard",
+    memorizationSetup: "Memorization Setup",
+    sessionCompleted: "Session Completed",
+    hadithManager: "Hadith Manager",
+    dailyHadith: "Daily Hadith",
+    markAsDone: "Mark as Done",
+    markAsSeen: "Mark as Seen",
+    hadithTitle: "Hadith Title",
+    hadithReference: "Reference"
   },
   ar: {
     appName: "حافظ",
@@ -360,7 +371,18 @@ export const translations = {
     date: "التاريخ",
     noHistory: "لا يوجد سجل جلسات حتى الآن.",
     startTime: "وقت البدء",
-    endTime: "وقت الانتهاء"
+    endTime: "وقت الانتهاء",
+    schedule: "جدول",
+    edit: "تعديل",
+    studentDashboard: "لوحة الطالب",
+    memorizationSetup: "إعداد الحفظ",
+    sessionCompleted: "تمت الجلسة",
+    hadithManager: "إدارة الأحاديث",
+    dailyHadith: "حديث اليوم",
+    markAsDone: "تم القراءة",
+    markAsSeen: "تم الاطلاع",
+    hadithTitle: "عنوان الحديث",
+    hadithReference: "المصدر"
   }
 };
 

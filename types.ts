@@ -1,4 +1,3 @@
-
 export enum UserRole {
   SHEIKH = 'SHEIKH',
   STUDENT = 'STUDENT',
@@ -91,4 +90,32 @@ export interface AuditLog {
   details: string;
   performedBy: string;
   timestamp: string;
+}
+
+export interface Hadith {
+  id: number;
+  title: string;
+  text: string;
+  reference: string;
+  orderIndex: number;
+}
+
+export interface SheikhHadithSettings {
+  id: string; // usually 'default' or linked to sheikhId
+  isEnabled: boolean;
+  activeDays: DayOfWeek[];
+  startFromHadithId: number;
+  distributionMode: 'sequential' | 'loop';
+  lastAssignedHadithId: number;
+  lastAssignmentDate?: string; // To prevent double assignment on the same day
+}
+
+export interface StudentDailyHadith {
+  id: string;
+  studentId: string;
+  studentName?: string;
+  hadithId: number;
+  date: string; // YYYY-MM-DD
+  status: 'ASSIGNED' | 'SEEN' | 'MARKED_DONE';
+  assignedAt: string;
 }

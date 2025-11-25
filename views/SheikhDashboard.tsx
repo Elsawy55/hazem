@@ -1,27 +1,23 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { Play, CheckCircle, SkipForward, UserX, Calendar, Clock, Users, UserPlus, Search, MessageCircle, Phone, BookOpen, LayoutDashboard, AlertTriangle, Banknote, Edit, Save, X, Trash2 } from 'lucide-react';
+import { Clock, Calendar, Users, UserPlus, Play, CheckCircle, SkipForward, UserX, MessageCircle, BookOpen, Phone, AlertTriangle, Search, X, Save, Settings } from 'lucide-react';
 import { useApp } from '../context/AppContext';
 import { Card } from '../components/ui/Card';
 import { Button } from '../components/ui/Button';
 import { Badge } from '../components/ui/Badge';
-import { SessionStatus, Student, Schedule, UserStatus, DayOfWeek } from '../types';
+import { Student, UserStatus, SessionStatus, Schedule, DayOfWeek } from '../types';
+import { api } from '../services/firebaseBackend';
+import { SheikhHadithManager } from '../components/SheikhHadithManager';
 
-type TabType = 'live' | 'schedule' | 'students' | 'requests';
+type TabType = 'live' | 'schedule' | 'students' | 'requests' | 'hadith';
 
-export const SheikhDashboard: React.FC = () => {
-  const {
-    queue, startSession, completeSession, skipSession, markAbsent, getActiveSession,
-    getAllStudents, approveStudent, updateStudentMemorization, deleteStudent, updateSchedule,
-    t, language
-  } = useApp();
+export const SheikhDashboard = () => {
+  const { queue, startSession, completeSession, skipSession, markAbsent, t, language } = useApp();
+  const { getStudents, approveStudent, updateSchedule, deleteStudent, updateStudentMemorization } = api.sheikh;
 
-  const activeSession = getActiveSession();
-  const [note, setNote] = useState('');
   const [activeTab, setActiveTab] = useState<TabType>('live');
-
-  // Data State
   const [allStudents, setAllStudents] = useState<Student[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
+  const [note, setNote] = useState('');
 
   // Approval Logic
   const [selectedStudent, setSelectedStudent] = useState<Student | null>(null);
@@ -35,12 +31,14 @@ export const SheikhDashboard: React.FC = () => {
     totalPagesMemorized: 0
   });
 
+  const activeSession = queue.sessions.find(s => s.status === SessionStatus.IN_PROGRESS);
+
   useEffect(() => {
     loadData();
   }, [activeTab]);
 
   const loadData = async () => {
-    const students = await getAllStudents();
+    const students = await getStudents();
     setAllStudents(students);
   };
 
@@ -52,7 +50,6 @@ export const SheikhDashboard: React.FC = () => {
       // Show toast with updated percentage
       if (updatedStudent) {
         const message = t('attendanceToast').replace('{{percent}}', updatedStudent.memorizationPercentage?.toFixed(2) || '0');
-        // Using a simple alert for now - in production, use a proper toast library
         alert(message);
       }
     }
@@ -110,7 +107,6 @@ export const SheikhDashboard: React.FC = () => {
   };
 
   // --- DERIVED DATA ---
-
   const pendingStudents = useMemo(() => allStudents.filter(s => s.status === UserStatus.PENDING), [allStudents]);
 
   // Daily Schedule Logic
@@ -166,26 +162,22 @@ export const SheikhDashboard: React.FC = () => {
           { id: 'live', label: t('liveSessionControl'), icon: <Clock size={18} /> },
           { id: 'schedule', label: t('todaysSchedule'), icon: <Calendar size={18} /> },
           { id: 'students', label: t('myStudents'), icon: <Users size={18} /> },
-          { id: 'requests', label: t('requests'), icon: <UserPlus size={18} />, count: pendingStudents.length }
+          { id: 'requests', label: t('requests'), icon: <UserPlus size={18} />, count: pendingStudents.length },
+          { id: 'hadith', label: t('hadithManager'), icon: <BookOpen size={18} /> }
         ].map((tab) => (
           <button
             key={tab.id}
             onClick={() => setActiveTab(tab.id as TabType)}
-            className={`px-5 py-2.5 rounded-full font-medium text-sm transition-all duration-200 flex items-center gap-2 whitespace-nowrap
-              ${activeTab === tab.id
-                ? 'bg-primary-600 text-white shadow-md'
-                : 'text-slate-500 hover:bg-slate-50 hover:text-slate-800'
+            className={`px-5 py-2.5 rounded-full font-medium text-sm transition-all duration-200 flex items-center gap-2 whitespace-nowrap ${activeTab === tab.id
+              ? 'bg-primary-600 text-white shadow-md'
+              : 'text-slate-500 hover:bg-slate-50 hover:text-slate-800'
               }`}
           >
             {tab.icon}
-            <span className="hidden sm:inline">{tab.label}</span>
-            {tab.count ? (
-              <span className={`text-[10px] px-1.5 py-0.5 rounded-full min-w-[1.25rem] text-center font-bold
-                ${activeTab === tab.id ? 'bg-white text-primary-600' : 'bg-red-500 text-white'}
-              `}>
-                {tab.count}
-              </span>
-            ) : null}
+            <span>{tab.label}</span>
+            {tab.count !== undefined && tab.count > 0 && (
+              <span className="bg-red-500 text-white text-[10px] px-1.5 py-0.5 rounded-full">{tab.count}</span>
+            )}
           </button>
         ))}
       </div>
@@ -193,7 +185,7 @@ export const SheikhDashboard: React.FC = () => {
   );
 
   return (
-    <div className="space-y-6">
+    <div className="pb-24">
       <StatsBar />
       <Taskbar />
 
@@ -300,7 +292,7 @@ export const SheikhDashboard: React.FC = () => {
         </div>
       )}
 
-      {/* 2. DAILY SCHEDULE (NEW) */}
+      {/* 2. DAILY SCHEDULE */}
       {activeTab === 'schedule' && (
         <div className="max-w-3xl mx-auto animate-in fade-in slide-in-from-bottom-4">
           <div className="flex items-center justify-between mb-6">
@@ -332,7 +324,6 @@ export const SheikhDashboard: React.FC = () => {
                       </div>
                     </div>
                     <div className="flex items-center gap-2">
-                      {/* Contact Button Sim */}
                       <a
                         href={`https://wa.me/${student.phoneNumber.replace('+', '')}`}
                         target="_blank"
@@ -350,7 +341,7 @@ export const SheikhDashboard: React.FC = () => {
         </div>
       )}
 
-      {/* 3. MY STUDENTS DIRECTORY (NEW) */}
+      {/* 3. MY STUDENTS DIRECTORY */}
       {activeTab === 'students' && (
         <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4">
           <div className="flex flex-col sm:flex-row gap-4 justify-between">
@@ -406,29 +397,18 @@ export const SheikhDashboard: React.FC = () => {
                   </div>
                 </div>
 
-                <div className="flex gap-2 mt-auto pt-4 border-t border-slate-50">
-                  <Button fullWidth size="sm" variant="secondary" icon={<Calendar size={16} />} onClick={() => handleScheduleClick(student)}>
-                    {t('assignSchedule')}
-                  </Button>
-                  <Button fullWidth size="sm" variant="outline" icon={<Edit size={16} />} onClick={() => handleEditClick(student)}>
-                    {t('editMemorization')}
-                  </Button>
-                  <Button size="sm" variant="danger" onClick={() => handleDelete(student.id)}>
-                    <Trash2 size={16} />
-                  </Button>
+                <div className="flex gap-2">
+                  <Button size="sm" variant="outline" fullWidth onClick={() => handleScheduleClick(student)}>{t('schedule')}</Button>
+                  <Button size="sm" variant="secondary" fullWidth onClick={() => handleEditClick(student)}>{t('edit')}</Button>
+                  <Button size="sm" variant="ghost" className="text-red-500 hover:bg-red-50 hover:text-red-600" onClick={() => handleDelete(student.id)}><UserX size={16} /></Button>
                 </div>
               </Card>
             ))}
-            {filteredStudents.length === 0 && (
-              <div className="col-span-full text-center py-12 text-slate-400">
-                No students found.
-              </div>
-            )}
           </div>
         </div>
       )}
 
-      {/* 4. REQUESTS (EXISTING) */}
+      {/* 4. REQUESTS */}
       {activeTab === 'requests' && (
         <div className="grid grid-cols-1 gap-6 max-w-3xl mx-auto animate-in fade-in slide-in-from-bottom-4">
           <div className="flex justify-between items-center">
@@ -458,7 +438,13 @@ export const SheikhDashboard: React.FC = () => {
               ))}
             </div>
           )}
+        </div>
+      )}
 
+      {/* 5. HADITH MANAGER */}
+      {activeTab === 'hadith' && (
+        <div className="animate-in fade-in slide-in-from-bottom-4">
+          <SheikhHadithManager />
         </div>
       )}
 

@@ -1,11 +1,15 @@
 // services/firebaseBackend.ts
 import { getDb } from '../firebaseConfig';
 import { collection, getDocs, query, where, doc, setDoc, updateDoc, getDoc, deleteDoc } from 'firebase/firestore';
-import { User, UserRole, UserStatus, Student, Session, SessionStatus, Schedule } from '../types';
+import { User, UserRole, UserStatus, Student, Session, SessionStatus, Schedule, Hadith, SheikhHadithSettings, StudentDailyHadith, DayOfWeek } from '../types';
 import { MOCK_SHEIKH } from '../constants';
+import { NAWAWI_HADITHS } from '../data/nawawi';
 
 const USERS_COLLECTION = 'users';
 const SESSIONS_COLLECTION = 'sessions';
+const HADITHS_COLLECTION = 'nawawi_hadiths';
+const HADITH_SETTINGS_COLLECTION = 'hadith_settings';
+const STUDENT_HADITH_COLLECTION = 'student_daily_hadith';
 
 // Initialize db
 let db: any;
@@ -287,6 +291,221 @@ export const api = {
       });
       // Sort by newest first (assuming ID is timestamp-based)
       return sessions.sort((a, b) => b.id.localeCompare(a.id));
+    }
+  },
+
+  hadith: {
+    seedHadiths: async (): Promise<void> => {
+      const db = getDb();
+      const q = query(collection(db, HADITHS_COLLECTION));
+      const snapshot = await getDocs(q);
+
+      if (snapshot.empty) {
+        console.log("Seeding Hadiths...");
+        for (const hadith of NAWAWI_HADITHS) {
+          await setDoc(doc(db, HADITHS_COLLECTION, hadith.id.toString()), hadith);
+        }
+      }
+    },
+
+    getSettings: async (): Promise<SheikhHadithSettings> => {
+      const db = getDb();
+      const docRef = doc(db, HADITH_SETTINGS_COLLECTION, 'default');
+      const snapshot = await getDoc(docRef);
+
+      if (snapshot.exists()) {
+        return snapshot.data() as SheikhHadithSettings;
+      } else {
+        // Default settings
+        const defaultSettings: SheikhHadithSettings = {
+          id: 'default',
+          isEnabled: false,
+          activeDays: [],
+          startFromHadithId: 1,
+          distributionMode: 'sequential',
+          lastAssignedHadithId: 0
+        };
+        await setDoc(docRef, defaultSettings);
+        return defaultSettings;
+      }
+    },
+
+    updateSettings: async (settings: Partial<SheikhHadithSettings>): Promise<void> => {
+      const db = getDb();
+      const docRef = doc(db, HADITH_SETTINGS_COLLECTION, 'default');
+      await updateDoc(docRef, settings);
+    },
+
+    assignDailyHadithForAllStudents: async (): Promise<void> => {
+      const db = getDb();
+      const settings = await api.hadith.getSettings();
+
+      if (!settings.isEnabled) return;
+
+      const today = new Date();
+      const dayName = today.toLocaleDateString('en-US', { weekday: 'short' }).toUpperCase() as DayOfWeek;
+      const dateStr = today.toISOString().split('T')[0];
+
+      // Check if today is active day
+      // Note: 'THU' vs 'Thu' - ensure mapping is correct. 
+      // JS getDay() returns 0-6. 
+      // Let's rely on the DayOfWeek type matching the settings.
+      // Mapping: SUN, MON, TUE, WED, THU, FRI, SAT
+      const daysMap = ['SUN', 'MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT'];
+      const currentDayCode = daysMap[today.getDay()] as DayOfWeek;
+
+      if (!settings.activeDays.includes(currentDayCode)) return;
+
+      // Check if already assigned today
+      if (settings.lastAssignmentDate === dateStr) return;
+
+      // Determine next hadith
+      let nextHadithId = settings.lastAssignedHadithId + 1;
+
+      // Check if we exceeded available hadiths (assuming 42 for Nawawi, or check DB count)
+      // For simplicity, let's check against our seed data length or a hard limit
+      const MAX_HADITHS = 42;
+
+      if (nextHadithId > MAX_HADITHS) {
+        if (settings.distributionMode === 'loop') {
+          nextHadithId = 1;
+        } else {
+          return; // Stop assigning
+        }
+      }
+
+      // Get all active students
+      const students = await api.sheikh.getStudents();
+      const activeStudents = students.filter(s => s.status === UserStatus.ACTIVE);
+
+      // Assign to each student
+      for (const student of activeStudents) {
+        // Check if student already has assignment for today (double safety)
+        const q = query(
+          collection(db, STUDENT_HADITH_COLLECTION),
+          where("studentId", "==", student.id),
+          where("date", "==", dateStr)
+        );
+        const snapshot = await getDocs(q);
+
+        if (snapshot.empty) {
+          const assignment: StudentDailyHadith = {
+            id: `${student.id}-${dateStr}`,
+            studentId: student.id,
+            hadithId: nextHadithId,
+            date: dateStr,
+            status: 'ASSIGNED',
+            assignedAt: new Date().toISOString()
+          };
+          await setDoc(doc(db, STUDENT_HADITH_COLLECTION, assignment.id), assignment);
+        }
+      }
+
+      // Update settings
+      await api.hadith.updateSettings({
+        lastAssignedHadithId: nextHadithId,
+        lastAssignmentDate: dateStr
+      });
+    },
+
+    getTodayHadithForStudent: async (studentId: string): Promise<{ assignment: StudentDailyHadith, hadith: Hadith } | null> => {
+      const db = getDb();
+      const today = new Date().toISOString().split('T')[0];
+
+      const q = query(
+        collection(db, STUDENT_HADITH_COLLECTION),
+        where("studentId", "==", studentId),
+        where("date", "==", today)
+      );
+      const snapshot = await getDocs(q);
+
+      if (snapshot.empty) return null;
+
+      const assignment = snapshot.docs[0].data() as StudentDailyHadith;
+
+      // Fetch hadith details
+      const hadithRef = doc(db, HADITHS_COLLECTION, assignment.hadithId.toString());
+      const hadithSnap = await getDoc(hadithRef);
+
+      if (!hadithSnap.exists()) return null;
+
+      return {
+        assignment,
+        hadith: hadithSnap.data() as Hadith
+      };
+    },
+
+    markHadithAsDone: async (assignmentId: string): Promise<void> => {
+      const db = getDb();
+      const ref = doc(db, STUDENT_HADITH_COLLECTION, assignmentId);
+      await updateDoc(ref, {
+        status: 'MARKED_DONE'
+      });
+    },
+
+    markHadithAsSeen: async (assignmentId: string): Promise<void> => {
+      const db = getDb();
+      const ref = doc(db, STUDENT_HADITH_COLLECTION, assignmentId);
+      const snap = await getDoc(ref);
+      if (snap.exists() && (snap.data() as StudentDailyHadith).status === 'ASSIGNED') {
+        await updateDoc(ref, {
+          status: 'SEEN'
+        });
+      }
+    },
+
+    getHadithStats: async (date: string): Promise<{
+      hadith: Hadith | null,
+      totalAssigned: number,
+      seenCount: number,
+      doneCount: number,
+      students: { name: string, status: string }[]
+    }> => {
+      const db = getDb();
+
+      // Get assignments for date
+      const q = query(
+        collection(db, STUDENT_HADITH_COLLECTION),
+        where("date", "==", date)
+      );
+      const snapshot = await getDocs(q);
+
+      if (snapshot.empty) {
+        return { hadith: null, totalAssigned: 0, seenCount: 0, doneCount: 0, students: [] };
+      }
+
+      const assignments = snapshot.docs.map(d => d.data() as StudentDailyHadith);
+      const hadithId = assignments[0].hadithId;
+
+      // Get Hadith info
+      const hadithRef = doc(db, HADITHS_COLLECTION, hadithId.toString());
+      const hadithSnap = await getDoc(hadithRef);
+      const hadith = hadithSnap.exists() ? hadithSnap.data() as Hadith : null;
+
+      // Get student names (could be optimized)
+      const studentList = [];
+      let seen = 0;
+      let done = 0;
+
+      for (const assign of assignments) {
+        if (assign.status === 'SEEN') seen++;
+        if (assign.status === 'MARKED_DONE') done++;
+
+        // Fetch student name
+        const studentRef = doc(db, USERS_COLLECTION, assign.studentId);
+        const studentSnap = await getDoc(studentRef);
+        const name = studentSnap.exists() ? (studentSnap.data() as Student).name : 'Unknown';
+
+        studentList.push({ name, status: assign.status });
+      }
+
+      return {
+        hadith,
+        totalAssigned: assignments.length,
+        seenCount: seen,
+        doneCount: done,
+        students: studentList
+      };
     }
   }
 };

@@ -1,13 +1,15 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from 'recharts';
 import { Clock, MapPin, BookOpen, Award, ChevronRight, AlertTriangle, Activity, Flag, UserX } from 'lucide-react';
 import { useApp } from '../context/AppContext';
 import { Card } from '../components/ui/Card';
 import { Button } from '../components/ui/Button';
-import { SessionStatus, Session } from '../types';
-import { PROGRESS_DATA, TOTAL_QURAN_PAGES } from '../constants';
+import { SessionStatus, Session, StudentDailyHadith, Hadith, DayOfWeek, UserRole, Student } from '../types';
+import { TOTAL_QURAN_PAGES } from '../constants';
 import MemorizationSetupModal from '../components/MemorizationSetupModal';
 import { FloatingNavbar } from '../components/FloatingNavbar';
+import { StudentHadithCard } from '../components/StudentHadithCard';
+import { api } from '../services/firebaseBackend';
 
 // Mock data for the chart - in a real app this would come from the backend
 const mockProgressData = [
@@ -20,42 +22,54 @@ const mockProgressData = [
   { day: 'Fri', pages: 3 },
 ];
 
-export const StudentDashboard: React.FC = () => {
-  const { auth, queue, checkIn, getCurrentStudent, t, language, getStudentHistory } = useApp();
-  const student = getCurrentStudent();
-  const [showSetup, setShowSetup] = React.useState(false);
-  const [history, setHistory] = React.useState<Session[]>([]);
-  const [activeSection, setActiveSection] = React.useState('home');
+export const StudentDashboard = () => {
+  const { auth, queue, checkIn, language, t, getStudentHistory } = useApp();
+  const student = auth.user?.role === UserRole.STUDENT ? auth.user as Student : null;
+  const isCheckedIn = queue.sessions.some(s => s.studentId === student?.id && (s.status === SessionStatus.WAITING || s.status === SessionStatus.READY || s.status === SessionStatus.IN_PROGRESS));
+  const [history, setHistory] = useState<Session[]>([]);
 
-  React.useEffect(() => {
-    if (student && !student.startPage) {
-      setShowSetup(true);
-    }
+  useEffect(() => {
     if (student) {
       getStudentHistory(student.id).then(setHistory);
     }
-  }, [student, getStudentHistory]);
+  }, [student]);
+  const [showSetup, setShowSetup] = useState(false);
+  const [activeSection, setActiveSection] = useState('home');
+  const [dailyHadith, setDailyHadith] = useState<{ assignment: StudentDailyHadith, hadith: Hadith } | null>(null);
 
-  React.useEffect(() => {
+  // Scroll spy for navbar
+  useEffect(() => {
     const handleScroll = () => {
       const sections = ['home', 'schedule', 'history'];
-      const scrollPosition = window.scrollY + window.innerHeight / 2;
-      for (const sectionId of sections) {
-        const section = document.getElementById(sectionId);
-        if (section) {
-          if (scrollPosition >= section.offsetTop && scrollPosition < section.offsetTop + section.offsetHeight) {
-            setActiveSection(sectionId);
+      for (const section of sections) {
+        const element = document.getElementById(section);
+        if (element) {
+          const rect = element.getBoundingClientRect();
+          if (rect.top >= 0 && rect.top <= 300) {
+            setActiveSection(section);
             break;
           }
         }
       }
     };
     window.addEventListener('scroll', handleScroll);
-    handleScroll();
-    return () => {
-      window.removeEventListener('scroll', handleScroll);
-    };
+    return () => window.removeEventListener('scroll', handleScroll);
   }, []);
+
+  // Fetch daily Hadith
+  useEffect(() => {
+    const fetchHadith = async () => {
+      if (student) {
+        try {
+          const data = await api.hadith.getTodayHadithForStudent(student.id);
+          setDailyHadith(data);
+        } catch (error) {
+          console.error("Error fetching daily hadith:", error);
+        }
+      }
+    };
+    fetchHadith();
+  }, [student]);
 
   if (!student) return null;
 
@@ -99,32 +113,47 @@ export const StudentDashboard: React.FC = () => {
   };
 
   const status = checkInStatus();
-
-  // 4. Determine what to show
-  const showCompletedCard = !activeSession && !status.allowed && completedSession?.status === SessionStatus.COMPLETED;
-  const showAbsentCard = !activeSession && !status.allowed && completedSession?.status === SessionStatus.ABSENT;
-
-  const isCheckedIn = !!activeSession;
+  const showAbsentCard = completedSession?.status === SessionStatus.ABSENT;
 
   return (
-    <div className="max-w-4xl mx-auto space-y-6 pb-24">
-      {/* Welcome Header */}
-      <div className="flex items-center justify-between mb-4">
-        <div>
-          <h2 className="text-2xl font-bold text-slate-800">{t('greeting')}, {student.name.split(' ')[0]}</h2>
-          <p className="text-slate-500">{t('readyForSession')}</p>
+    <div className="pb-24 space-y-6">
+      <div id="home">
+        {/* Header and Welcome */}
+        <div className="flex justify-between items-center mb-6">
+          <div>
+            <h1 className="text-2xl font-bold text-slate-800">
+              {t('welcome')}, {student.name.split(' ')[0]}
+            </h1>
+            <p className="text-slate-500">{t('studentDashboard')}</p>
+          </div>
+          <Button variant="outline" size="sm" onClick={() => setShowSetup(true)}>
+            <Award size={16} className="me-2" />
+            {t('memorizationSetup')}
+          </Button>
         </div>
-      </div>
 
-      <div id="home" className="space-y-6">
-        {/* Main Status Card */}
-        {showCompletedCard && completedSession ? (
+        {/* Hadith Card */}
+        {dailyHadith && (
+          <div className="mb-8">
+            <StudentHadithCard
+              hadith={dailyHadith.hadith}
+              assignment={dailyHadith.assignment}
+              onUpdate={async () => {
+                const data = await api.hadith.getTodayHadithForStudent(student.id);
+                setDailyHadith(data);
+              }}
+            />
+          </div>
+        )}
+
+        {/* Status Card */}
+        {completedSession && !showAbsentCard ? (
           <Card className="bg-green-50 border-green-100 mb-8">
             <div className="text-center py-6">
               <div className="w-16 h-16 bg-green-100 text-green-600 rounded-full flex items-center justify-center mx-auto mb-4">
                 <Award size={32} />
               </div>
-              <h3 className="text-xl font-bold text-green-800">{t('mashaAllah')}</h3>
+              <h3 className="text-xl font-bold text-green-800">{t('sessionCompleted')}</h3>
               <p className="text-green-700">{t('completedMsg')}</p>
               <div className="mt-6 p-4 bg-white rounded-xl border border-green-100 max-w-sm mx-auto">
                 <p className="text-sm text-slate-500">{t('sheikhNote')}:</p>
@@ -143,9 +172,8 @@ export const StudentDashboard: React.FC = () => {
             </div>
           </Card>
         ) : (
-          <Card className="overflow-visible mb-8">
+          <Card className="overflow-visible mb-8 relative">
             <div className="absolute top-0 left-0 w-full h-2 bg-gradient-to-r from-primary-400 to-primary-600"></div>
-
             <div className="flex flex-col md:flex-row gap-6 pt-2">
               <div className="flex-1 space-y-4">
                 {isCheckedIn && activeSession && (
@@ -277,7 +305,7 @@ export const StudentDashboard: React.FC = () => {
       </div>
 
       {/* Schedule & History Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pb-24">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         {/* Schedule Card */}
         <div id="schedule">
           <Card className="bg-white border-slate-100 p-6 h-full">
@@ -290,7 +318,7 @@ export const StudentDashboard: React.FC = () => {
                 <div className="flex justify-between items-center p-3 bg-slate-50 rounded-lg">
                   <span className="text-slate-500">{t('days')}</span>
                   <div className="flex gap-1">
-                    {student.schedule.days.map(day => (
+                    {student.schedule.days.map((day: DayOfWeek) => (
                       <span key={day} className="px-2 py-1 bg-white border border-slate-200 rounded text-xs font-medium text-slate-600">{day}</span>
                     ))}
                   </div>
@@ -322,7 +350,7 @@ export const StudentDashboard: React.FC = () => {
             </div>
             <div className="space-y-4 max-h-[300px] overflow-y-auto pr-2 custom-scrollbar">
               {history.length > 0 ? (
-                history.map((session) => (
+                history.map((session: Session) => (
                   <div key={session.id} className="p-4 bg-slate-50 rounded-xl border border-slate-100">
                     <div className="flex justify-between items-start mb-2">
                       <span className="text-xs font-medium text-slate-400">{new Date(parseInt(session.id.split('-')[1])).toLocaleDateString(language === 'ar' ? 'ar-EG' : 'en-US', { weekday: 'short', month: 'short', day: 'numeric' })}</span>
