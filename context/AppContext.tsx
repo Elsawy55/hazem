@@ -1,9 +1,5 @@
 import React, { createContext, useContext, useState, useCallback, ReactNode, useEffect } from 'react';
 import { AuthState, User, UserRole, UserStatus, QueueState, Session, SessionStatus, Student, Language, Schedule } from '../types';
-
-// -------------------------------------------------------------
-// IMPORTANT: Switching to Firebase Backend for Production
-// -------------------------------------------------------------
 import { api } from '../services/firebaseBackend';
 // import { api } from '../services/localBackend'; // Switched to local for development
 
@@ -186,8 +182,8 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     try {
       setAuth(prev => ({ ...prev, isLoading: true, error: undefined }));
       const user = await api.auth.login(phone, pass);
-      localStorage.setItem('hafiz_user_session', JSON.stringify(user));
-      setAuth({ user, isAuthenticated: true, isLoading: false });
+      localStorage.setItem('hafiz_user_session', JSON.stringify(user.userData));
+      setAuth({ user: user.userData, isAuthenticated: true, isLoading: false });
     } catch (err: any) {
       setAuth(prev => ({ ...prev, isLoading: false, error: err.message }));
       throw err;
@@ -288,7 +284,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
   }, [queue.sessions]);
 
   const completeSession = async (sessionId: string, notes?: string) => {
-    const updatedStudent = await api.sheikh.completeSession(sessionId, notes);
+    const updatedStudent = await api.sheikh.completeSession(sessionId, notes || '');
     setQueue(prev => ({
       ...prev,
       currentSessionId: null,
@@ -354,8 +350,8 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     }
   };
 
-  const approveStudent = async (id: string, schedule: Schedule) => {
-    await api.sheikh.approveStudent(id, schedule);
+  const approveStudent = async (id: string) => {
+    await api.sheikh.approveStudent(id);
   };
 
   const updateSchedule = async (studentId: string, schedule: Schedule) => {

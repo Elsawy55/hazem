@@ -58,7 +58,7 @@ export const SheikhDashboard = () => {
   const handleApprove = async () => {
     if (selectedStudent) {
       if (selectedStudent.status === UserStatus.PENDING) {
-        await approveStudent(selectedStudent.id, scheduleForm);
+        await approveStudent(selectedStudent.id);
       } else {
         await updateSchedule(selectedStudent.id, scheduleForm);
       }
