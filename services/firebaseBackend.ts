@@ -319,8 +319,8 @@ export const api = {
         // Default settings
         const defaultSettings: SheikhHadithSettings = {
           id: 'default',
-          isEnabled: false,
-          activeDays: [],
+          isEnabled: true,
+          activeDays: ['SAT', 'SUN', 'MON', 'TUE', 'WED', 'THU', 'FRI'],
           startFromHadithId: 1,
           distributionMode: 'sequential',
           lastAssignedHadithId: 0
@@ -419,7 +419,18 @@ export const api = {
       );
       const snapshot = await getDocs(q);
 
-      if (snapshot.empty) return null;
+      if (snapshot.empty) {
+        // Auto-assign if not done yet (for standalone student view)
+        await api.hadith.assignDailyHadithForAllStudents();
+        const retrySnapshot = await getDocs(q);
+        if (retrySnapshot.empty) return null;
+
+        const assignment = retrySnapshot.docs[0].data() as StudentDailyHadith;
+        const hadithRef = doc(db, HADITHS_COLLECTION, assignment.hadithId.toString());
+        const hadithSnap = await getDoc(hadithRef);
+        if (!hadithSnap.exists()) return null;
+        return { assignment, hadith: hadithSnap.data() as Hadith };
+      }
 
       const assignment = snapshot.docs[0].data() as StudentDailyHadith;
 
