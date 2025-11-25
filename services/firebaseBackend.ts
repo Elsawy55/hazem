@@ -343,8 +343,10 @@ export const api = {
       if (!settings.isEnabled) return;
 
       const today = new Date();
-      const dayName = today.toLocaleDateString('en-US', { weekday: 'short' }).toUpperCase() as DayOfWeek;
-      const dateStr = today.toISOString().split('T')[0];
+      // Use local date string to avoid timezone issues (e.g. Egypt UTC+2)
+      const offset = today.getTimezoneOffset() * 60000;
+      const localDate = new Date(today.getTime() - offset);
+      const dateStr = localDate.toISOString().split('T')[0];
 
       // Check if today is active day
       // Note: 'THU' vs 'Thu' - ensure mapping is correct. 
@@ -410,12 +412,15 @@ export const api = {
 
     getTodayHadithForStudent: async (studentId: string): Promise<{ assignment: StudentDailyHadith, hadith: Hadith } | null> => {
       const db = getDb();
-      const today = new Date().toISOString().split('T')[0];
+      const today = new Date();
+      const offset = today.getTimezoneOffset() * 60000;
+      const localDate = new Date(today.getTime() - offset);
+      const dateStr = localDate.toISOString().split('T')[0];
 
       const q = query(
         collection(db, STUDENT_HADITH_COLLECTION),
         where("studentId", "==", studentId),
-        where("date", "==", today)
+        where("date", "==", dateStr)
       );
       const snapshot = await getDocs(q);
 
