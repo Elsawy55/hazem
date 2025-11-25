@@ -33,6 +33,7 @@ export const StudentDashboard = () => {
       getStudentHistory(student.id).then(setHistory);
     }
   }, [student]);
+
   const [showSetup, setShowSetup] = useState(false);
   const [activeSection, setActiveSection] = useState('home');
   const [dailyHadith, setDailyHadith] = useState<{ assignment: StudentDailyHadith, hadith: Hadith } | null>(null);
@@ -61,7 +62,9 @@ export const StudentDashboard = () => {
     const fetchHadith = async () => {
       if (student) {
         try {
+          console.log("Fetching daily hadith for student:", student.id);
           const data = await api.hadith.getTodayHadithForStudent(student.id);
+          console.log("Fetched daily hadith data:", data);
           setDailyHadith(data);
         } catch (error) {
           console.error("Error fetching daily hadith:", error);
