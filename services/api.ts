@@ -3,7 +3,7 @@ import { api as localApi } from './localBackend';
 
 // Determine which backend to use based on environment variable
 // FORCING LOCAL BACKEND TO DEBUG
-const useLocalBackend = true; // import.meta.env.VITE_USE_LOCAL_BACKEND === 'true';
+const useLocalBackend = import.meta.env.VITE_USE_LOCAL_BACKEND === 'true';
 
 if (useLocalBackend) {
     console.log('🚀 Using Local Storage Backend');
