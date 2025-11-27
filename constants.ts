@@ -1,4 +1,19 @@
 
+import { Session, User, UserRole, UserStatus, Student } from './types';
+
+// FIXED SHEIKH CREDENTIALS
+export const MOCK_SHEIKH: User = {
+  id: 'sheikh-1',
+  name: 'الشيخ حازم',
+  role: UserRole.SHEIKH,
+  status: UserStatus.ACTIVE,
+  avatarUrl: 'https://cdn-icons-png.flaticon.com/512/3048/3048122.png',
+  phoneNumber: '01065332836',
+  password: '123456'
+};
+
+export const MOCK_STUDENTS: Student[] = [];
+
 export const INITIAL_SESSIONS: Session[] = [];
 
 // Empty chart data structure
