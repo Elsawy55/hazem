@@ -52,7 +52,11 @@ const getDb = () => db;
 export const api = {
   auth: {
     // ... existing auth methods ...
-    login: async (email: string, password: string) => {
+    login: async (emailOrPhone: string, password: string) => {
+      let email = emailOrPhone;
+      if (!email.includes('@')) {
+        email = `${emailOrPhone}@hafiz.com`;
+      }
       const userCredential = await signInWithEmailAndPassword(auth, email, password);
       const userDoc = await getDoc(doc(db, USERS_COLLECTION, userCredential.user.uid));
       if (userDoc.exists()) {
@@ -84,7 +88,13 @@ export const api = {
       // Create auth user (mock or real)
       // For now, just create the doc assuming auth is handled or this is part of a flow
       // Actually, register usually involves createUserWithEmailAndPassword
-      const userCredential = await createUserWithEmailAndPassword(auth, data.email, '123456'); // Default pass
+
+      let email = data.email;
+      if (!email && data.phone) {
+        email = `${data.phone}@hafiz.com`;
+      }
+
+      const userCredential = await createUserWithEmailAndPassword(auth, email, data.password || '123456'); // Default pass
       const student: Student = {
         id: userCredential.user.uid,
         ...data,
