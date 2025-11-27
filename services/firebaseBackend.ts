@@ -455,7 +455,18 @@ export const api = {
       const hadithRef = doc(db, HADITHS_COLLECTION, assignment.hadithId.toString());
       const hadithSnap = await getDoc(hadithRef);
 
-      if (!hadithSnap.exists()) return null;
+      if (!hadithSnap.exists()) {
+        // Auto-seed if missing
+        const localHadith = NAWAWI_HADITHS.find(h => h.id === assignment.hadithId);
+        if (localHadith) {
+          await setDoc(hadithRef, localHadith);
+          return {
+            assignment,
+            hadith: localHadith
+          };
+        }
+        return null;
+      }
 
       return {
         assignment,

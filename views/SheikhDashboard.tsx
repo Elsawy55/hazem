@@ -156,8 +156,8 @@ export const SheikhDashboard = () => {
   );
 
   const Taskbar = () => (
-    <div className="sticky top-20 z-30 flex justify-center mb-8 animate-in slide-in-from-top-2">
-      <div className="bg-white p-1.5 rounded-full shadow-lg border border-slate-100 inline-flex items-center gap-1">
+    <div className="sticky top-20 z-30 flex justify-center mb-8 animate-in slide-in-from-top-2 w-full overflow-x-auto no-scrollbar px-4">
+      <div className="bg-white p-1.5 rounded-full shadow-lg border border-slate-100 inline-flex items-center gap-1 min-w-max">
         {[
           { id: 'live', label: t('liveSessionControl'), icon: <Clock size={18} /> },
           { id: 'schedule', label: t('todaysSchedule'), icon: <Calendar size={18} /> },
