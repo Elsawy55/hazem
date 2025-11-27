@@ -144,9 +144,18 @@ export const api = {
       return users.filter(u => u.role === UserRole.STUDENT && !u.archived) as Student[];
     },
 
-    getSessions: async (): Promise<Session[]> => {
-      await new Promise(resolve => setTimeout(resolve, 300));
-      return getSessions();
+    getSessions: async (dateStr: string): Promise<Session[]> => {
+      const sessions = JSON.parse(localStorage.getItem(DB_KEYS.SESSIONS) || '[]');
+      return sessions;
+    },
+
+    subscribeToSessions: (callback: (sessions: Session[]) => void) => {
+      // Mock subscription using polling
+      const interval = setInterval(() => {
+        const sessions = JSON.parse(localStorage.getItem(DB_KEYS.SESSIONS) || '[]');
+        callback(sessions);
+      }, 1000);
+      return () => clearInterval(interval);
     },
 
     approveStudent: async (id: string, schedule?: Schedule): Promise<void> => {

@@ -113,26 +113,14 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
 
     window.addEventListener('storage', handleStorageChange);
 
-    // Also poll for session and user changes every 2 seconds (for same-tab updates)
-    const pollInterval = setInterval(() => {
-      // 1. Poll Sessions
-      const currentSessions = localStorage.getItem('hafiz_db_sessions');
-      if (currentSessions) {
-        try {
-          const sessions = JSON.parse(currentSessions);
-          setQueue(prev => {
-            // Only update if sessions actually changed
-            if (JSON.stringify(prev.sessions) !== JSON.stringify(sessions)) {
-              return { ...prev, sessions };
-            }
-            return prev;
-          });
-        } catch (e) {
-          console.error('Failed to poll sessions:', e);
-        }
-      }
+    // Subscribe to real-time session updates
+    const unsubscribeSessions = api.sheikh.subscribeToSessions((sessions) => {
+      setQueue(prev => ({ ...prev, sessions }));
+    });
 
-      // 2. Poll User Data (for Schedule Updates)
+    // Also poll for user changes every 2 seconds (for same-tab updates)
+    const pollInterval = setInterval(() => {
+      // Poll User Data (for Schedule Updates)
       const currentUserStr = localStorage.getItem('hafiz_user_session');
       if (currentUserStr) {
         const currentUser = JSON.parse(currentUserStr);
@@ -159,6 +147,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     return () => {
       window.removeEventListener('storage', handleStorageChange);
       clearInterval(pollInterval);
+      if (unsubscribeSessions) unsubscribeSessions();
     };
   }, []);
 

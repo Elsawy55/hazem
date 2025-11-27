@@ -22,6 +22,7 @@ import {
   onAuthStateChanged,
   User
 } from 'firebase/auth';
+import { onSnapshot } from 'firebase/firestore';
 import { app, db, auth } from '../firebaseConfig';
 import {
   UserRole,
@@ -149,6 +150,20 @@ export const api = {
     },
 
     deleteStudent: async (studentId: string) => {
+      const db = getDb();
+      // 1. Delete all sessions for this student
+      const sessionsQ = query(collection(db, SESSIONS_COLLECTION), where("studentId", "==", studentId));
+      const sessionsSnap = await getDocs(sessionsQ);
+      const sessionDeletes = sessionsSnap.docs.map(d => deleteDoc(d.ref));
+      await Promise.all(sessionDeletes);
+
+      // 2. Delete all hadith records for this student
+      const hadithQ = query(collection(db, STUDENT_HADITH_COLLECTION), where("studentId", "==", studentId));
+      const hadithSnap = await getDocs(hadithQ);
+      const hadithDeletes = hadithSnap.docs.map(d => deleteDoc(d.ref));
+      await Promise.all(hadithDeletes);
+
+      // 3. Delete the user document
       await deleteDoc(doc(db, USERS_COLLECTION, studentId));
     },
 
@@ -162,6 +177,18 @@ export const api = {
         sessions.push(doc.data() as Session);
       });
       return sessions;
+    },
+
+    subscribeToSessions: (callback: (sessions: Session[]) => void) => {
+      const db = getDb();
+      const q = query(collection(db, SESSIONS_COLLECTION));
+      return onSnapshot(q, (snapshot) => {
+        const sessions: Session[] = [];
+        snapshot.forEach((doc) => {
+          sessions.push(doc.data() as Session);
+        });
+        callback(sessions);
+      });
     },
 
     approveStudent: async (studentId: string) => {
