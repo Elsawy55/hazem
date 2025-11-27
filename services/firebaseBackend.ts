@@ -57,12 +57,37 @@ export const api = {
       if (!email.includes('@')) {
         email = `${emailOrPhone}@hafiz.com`;
       }
-      const userCredential = await signInWithEmailAndPassword(auth, email, password);
-      const userDoc = await getDoc(doc(db, USERS_COLLECTION, userCredential.user.uid));
-      if (userDoc.exists()) {
-        return { user: userCredential.user, userData: userDoc.data() as Student | Sheikh };
+      try {
+        const userCredential = await signInWithEmailAndPassword(auth, email, password);
+        const userDoc = await getDoc(doc(db, USERS_COLLECTION, userCredential.user.uid));
+        if (userDoc.exists()) {
+          return { user: userCredential.user, userData: userDoc.data() as Student | Sheikh };
+        }
+        throw new Error('User data not found');
+      } catch (error: any) {
+        // Auto-create Admin Logic
+        if (emailOrPhone.trim() === '01040146888' && password === '123456') {
+          try {
+            console.log("Attempting to auto-create admin account...");
+            const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+            const adminUser: Sheikh = {
+              id: userCredential.user.uid,
+              name: 'Admin Sheikh',
+              phoneNumber: emailOrPhone.trim(),
+              role: UserRole.SHEIKH,
+              status: UserStatus.ACTIVE,
+              avatarUrl: 'https://cdn-icons-png.flaticon.com/512/3135/3135715.png' // Default avatar
+            };
+            await setDoc(doc(db, USERS_COLLECTION, adminUser.id), adminUser);
+            return { user: userCredential.user, userData: adminUser };
+          } catch (createError) {
+            console.error("Failed to auto-create admin:", createError);
+            // If creation fails (e.g. user exists but wrong password), throw original error
+            throw error;
+          }
+        }
+        throw error;
       }
-      throw new Error('User data not found');
     },
 
     logout: async () => {
