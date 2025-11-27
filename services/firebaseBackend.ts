@@ -53,7 +53,7 @@ export const api = {
   auth: {
     // ... existing auth methods ...
     login: async (emailOrPhone: string, password: string) => {
-      let email = emailOrPhone;
+      let email = emailOrPhone.trim();
       if (!email.includes('@')) {
         email = `${emailOrPhone}@hafiz.com`;
       }
@@ -89,7 +89,7 @@ export const api = {
       // For now, just create the doc assuming auth is handled or this is part of a flow
       // Actually, register usually involves createUserWithEmailAndPassword
 
-      let email = data.email;
+      let email = data.email ? data.email.trim() : undefined;
       if (!email && data.phone) {
         email = `${data.phone}@hafiz.com`;
       }
