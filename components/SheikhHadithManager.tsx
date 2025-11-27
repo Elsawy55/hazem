@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { api } from '../services/firebaseBackend';
+import { api } from '../services/api';
 import { SheikhHadithSettings, DayOfWeek, Hadith } from '../types';
 import { Settings, BarChart2, Save, RefreshCw, Users } from 'lucide-react';
 
@@ -118,8 +118,8 @@ export const SheikhHadithManager: React.FC = () => {
                                         key={day.key}
                                         onClick={() => toggleDay(day.key)}
                                         className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${settings.activeDays.includes(day.key)
-                                                ? 'bg-emerald-600 text-white'
-                                                : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                                            ? 'bg-emerald-600 text-white'
+                                            : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
                                             }`}
                                     >
                                         {day.label}

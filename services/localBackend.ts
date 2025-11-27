@@ -1,4 +1,4 @@
-import { User, UserRole, UserStatus, Student, Session, SessionStatus, Schedule, AuditLog } from '../types';
+import { User, UserRole, UserStatus, Student, Session, SessionStatus, Schedule, AuditLog, SheikhHadithSettings, StudentDailyHadith, Hadith } from '../types';
 import { MOCK_SHEIKH } from '../constants';
 
 const DB_KEYS = {
@@ -84,7 +84,7 @@ initializeDB();
 
 export const api = {
   auth: {
-    login: async (phone: string, pass: string): Promise<User> => {
+    login: async (phone: string, pass: string): Promise<{ user: any, userData: User }> => {
       await new Promise(resolve => setTimeout(resolve, 500));
       const users = getUsers();
       const user = users.find(u => u.phoneNumber === phone && u.password === pass);
@@ -93,7 +93,7 @@ export const api = {
       if (user.status === UserStatus.SUSPENDED) throw new Error('تم إيقاف هذا الحساب');
       if (user.archived) throw new Error('تم حذف هذا الحساب');
 
-      return user;
+      return { user: { uid: user.id, email: user.phoneNumber }, userData: user };
     },
 
     requestOtp: async (phone: string): Promise<void> => {
@@ -375,6 +375,61 @@ export const api = {
       return sessions
         .filter(s => s.studentId === studentId && s.status === SessionStatus.COMPLETED)
         .sort((a, b) => b.id.localeCompare(a.id)); // Sort by newest first (assuming ID is timestamp-based)
+    }
+  },
+
+  hadith: {
+    seedHadiths: async (): Promise<void> => {
+      console.log("Local: seedHadiths");
+    },
+
+    getSettings: async (): Promise<SheikhHadithSettings> => {
+      const str = localStorage.getItem('hafiz_db_hadith_settings');
+      if (str) return JSON.parse(str);
+      return {
+        id: 'default',
+        isEnabled: true,
+        activeDays: ['SAT', 'SUN', 'MON', 'TUE', 'WED', 'THU', 'FRI'],
+        startFromHadithId: 1,
+        distributionMode: 'sequential',
+        lastAssignedHadithId: 0
+      };
+    },
+
+    updateSettings: async (settings: Partial<SheikhHadithSettings>): Promise<void> => {
+      const current = await api.hadith.getSettings();
+      const updated = { ...current, ...settings };
+      localStorage.setItem('hafiz_db_hadith_settings', JSON.stringify(updated));
+    },
+
+    assignDailyHadithForAllStudents: async (): Promise<void> => {
+      console.log("Local: assignDailyHadithForAllStudents");
+    },
+
+    assignHadithForStudent: async (studentId: string, dateStr: string) => {
+      console.log("Local: assignHadithForStudent", studentId, dateStr);
+    },
+
+    getTodayHadithForStudent: async (studentId: string): Promise<{ assignment: StudentDailyHadith, hadith: Hadith } | null> => {
+      return null;
+    },
+
+    markHadithAsDone: async (assignmentId: string): Promise<void> => {
+      console.log("Local: markHadithAsDone", assignmentId);
+    },
+
+    markHadithAsSeen: async (assignmentId: string): Promise<void> => {
+      console.log("Local: markHadithAsSeen", assignmentId);
+    },
+
+    getHadithStats: async (date: string): Promise<{
+      hadith: Hadith | null,
+      totalAssigned: number,
+      seenCount: number,
+      doneCount: number,
+      students: { name: string, status: string }[]
+    }> => {
+      return { hadith: null, totalAssigned: 0, seenCount: 0, doneCount: 0, students: [] };
     }
   }
 };

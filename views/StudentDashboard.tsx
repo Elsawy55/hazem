@@ -9,7 +9,7 @@ import { TOTAL_QURAN_PAGES } from '../constants';
 import MemorizationSetupModal from '../components/MemorizationSetupModal';
 import { FloatingNavbar } from '../components/FloatingNavbar';
 import { StudentHadithCard } from '../components/StudentHadithCard';
-import { api } from '../services/firebaseBackend';
+import { api } from '../services/api';
 
 // Mock data for the chart - in a real app this would come from the backend
 const mockProgressData = [

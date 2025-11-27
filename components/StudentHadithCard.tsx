@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Hadith, StudentDailyHadith } from '../types';
 import { BookOpen, CheckCircle, ChevronDown, ChevronUp, Share2 } from 'lucide-react';
-import { api } from '../services/firebaseBackend';
+import { api } from '../services/api';
 
 interface StudentHadithCardProps {
     hadith: Hadith;

@@ -5,7 +5,7 @@ import { Card } from '../components/ui/Card';
 import { Button } from '../components/ui/Button';
 import { Badge } from '../components/ui/Badge';
 import { Student, UserStatus, SessionStatus, Schedule, DayOfWeek } from '../types';
-import { api } from '../services/firebaseBackend';
+import { api } from '../services/api';
 import { SheikhHadithManager } from '../components/SheikhHadithManager';
 
 type TabType = 'live' | 'schedule' | 'students' | 'requests' | 'hadith';

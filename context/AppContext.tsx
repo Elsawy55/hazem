@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useState, useCallback, ReactNode, useEffect } from 'react';
 import { AuthState, User, UserRole, UserStatus, QueueState, Session, SessionStatus, Student, Language, Schedule } from '../types';
-import { api } from '../services/firebaseBackend';
+import { api } from '../services/api';
 // import { api } from '../services/localBackend'; // Switched to local for development
 
 import { translations, TranslationKey } from '../translations';
