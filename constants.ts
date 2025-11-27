@@ -1,20 +1,4 @@
 
-import { Session, SessionStatus, User, UserRole, Student, UserStatus } from './types';
-
-// FIXED SHEIKH CREDENTIALS
-export const MOCK_SHEIKH: User = {
-  id: 'sheikh-1',
-  name: 'حازم امام',
-  role: UserRole.SHEIKH,
-  status: UserStatus.ACTIVE,
-  avatarUrl: 'https://ui-avatars.com/api/?name=حازم+امام&background=0D9488&color=fff',
-  phoneNumber: '01040146888',
-  password: '55667788' // Fixed password
-};
-
-// Empty arrays for a "Real DB" feel (no fake users)
-export const MOCK_STUDENTS: Student[] = [];
-
 export const INITIAL_SESSIONS: Session[] = [];
 
 // Empty chart data structure

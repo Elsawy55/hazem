@@ -15,7 +15,7 @@ const initializeDB = (): User[] => {
   const existingUsersStr = localStorage.getItem(DB_KEYS.USERS);
   let users: User[] = existingUsersStr ? JSON.parse(existingUsersStr) : [];
 
-  const sheikhIndex = users.findIndex(u => u.phoneNumber === '01040146888');
+  const sheikhIndex = users.findIndex(u => u.phoneNumber === '01065332836');
 
   if (sheikhIndex === -1) {
     users.push(MOCK_SHEIKH);
