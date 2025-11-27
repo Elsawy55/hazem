@@ -149,7 +149,7 @@ export const api = {
       return getSessions();
     },
 
-    approveStudent: async (id: string, schedule: Schedule): Promise<void> => {
+    approveStudent: async (id: string, schedule?: Schedule): Promise<void> => {
       await new Promise(resolve => setTimeout(resolve, 300));
       const users = getUsers();
       const idx = users.findIndex(u => u.id === id);
